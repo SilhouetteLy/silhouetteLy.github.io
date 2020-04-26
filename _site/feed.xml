@@ -1,17 +1,328 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.0.0">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2020-04-24T18:32:44+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Your awesome title</title><subtitle>Write an awesome description for your new site here. You can edit this line in _config.yml. It will appear in your document head meta (for Google search results) and in your feed.xml site description.</subtitle><entry><title type="html">Welcome to Jekyll!</title><link href="http://localhost:4000/jekyll/update/2020/04/24/welcome-to-jekyll.html" rel="alternate" type="text/html" title="Welcome to Jekyll!" /><published>2020-04-24T18:31:34+08:00</published><updated>2020-04-24T18:31:34+08:00</updated><id>http://localhost:4000/jekyll/update/2020/04/24/welcome-to-jekyll</id><content type="html" xml:base="http://localhost:4000/jekyll/update/2020/04/24/welcome-to-jekyll.html">&lt;p&gt;You’ll find this post in your &lt;code class=&quot;highlighter-rouge&quot;&gt;_posts&lt;/code&gt; directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run &lt;code class=&quot;highlighter-rouge&quot;&gt;jekyll serve&lt;/code&gt;, which launches a web server and auto-regenerates your site when a file is updated.&lt;/p&gt;
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>SilhouetteLy Blog</title>
+    <description>Read well,and strive well for those wuh like it.</description>
+    <link>http://localhost:4000/</link>
+    <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml" />
+    <pubDate>Sun, 26 Apr 2020 12:31:51 +0800</pubDate>
+    <lastBuildDate>Sun, 26 Apr 2020 12:31:51 +0800</lastBuildDate>
+    <generator>Jekyll v4.0.0</generator>
+    
+      <item>
+        <title>基于github pages + jekyll搭建个人博客网站</title>
+        <description>&lt;blockquote&gt;
+  &lt;p&gt;“你去爬山被告知的第一件事，就是别去看顶峰。而是专注于在爬的路，一步一个脚印地，耐心攀爬，如果你不断看山顶，就会泄气。   –黑泽明 ”&lt;/p&gt;
+&lt;/blockquote&gt;
 
-&lt;p&gt;Jekyll requires blog post files to be named according to the following format:&lt;/p&gt;
+&lt;h2 id=&quot;前言&quot;&gt;前言&lt;/h2&gt;
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;YEAR-MONTH-DAY-title.MARKUP&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;一直苦于Typora上的书写的Markdown文件不能支持移动端浏览，所以老有搭建私人博客的冲动，因朋友推荐的搭建博客方法，感觉简单而且个性化十足，正好赶上是周末，所以花了一天的时间试试，下面是我的搭建过程及遇到的问题。&lt;/p&gt;
 
-&lt;p&gt;Where &lt;code class=&quot;highlighter-rouge&quot;&gt;YEAR&lt;/code&gt; is a four-digit number, &lt;code class=&quot;highlighter-rouge&quot;&gt;MONTH&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;DAY&lt;/code&gt; are both two-digit numbers, and &lt;code class=&quot;highlighter-rouge&quot;&gt;MARKUP&lt;/code&gt; is the file extension representing the format used in the file. After that, include the necessary front matter. Take a look at the source for this post to get an idea about how it works.&lt;/p&gt;
+&lt;h2 id=&quot;一基于github-pages--jekyll搭建个人博客网站&quot;&gt;一、基于github pages + jekyll搭建个人博客网站&lt;/h2&gt;
 
-&lt;p&gt;Jekyll also offers powerful support for code snippets:&lt;/p&gt;
+&lt;h3 id=&quot;11-基于jekyll创建静态网站&quot;&gt;1.1 基于JeKyll创建静态网站&lt;/h3&gt;
 
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ruby&quot; data-lang=&quot;ruby&quot;&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;print_hi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-  &lt;span class=&quot;nb&quot;&gt;puts&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Hi, &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;#{&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;print_hi&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Tom'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;c1&quot;&gt;#=&amp;gt; prints 'Hi, Tom' to STDOUT.&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+&lt;h4 id=&quot;111-关于jekyll&quot;&gt;1.1.1 关于Jekyll&lt;/h4&gt;
 
-&lt;p&gt;Check out the &lt;a href=&quot;https://jekyllrb.com/docs/home&quot;&gt;Jekyll docs&lt;/a&gt; for more info on how to get the most out of Jekyll. File all bugs/feature requests at &lt;a href=&quot;https://github.com/jekyll/jekyll&quot;&gt;Jekyll’s GitHub repo&lt;/a&gt;. If you have questions, you can ask them on &lt;a href=&quot;https://talk.jekyllrb.com/&quot;&gt;Jekyll Talk&lt;/a&gt;.&lt;/p&gt;</content><author><name></name></author><summary type="html">You’ll find this post in your _posts directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run jekyll serve, which launches a web server and auto-regenerates your site when a file is updated.</summary></entry></feed>
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;jekyll是一个简单的免费的Blog生成工具&lt;/code&gt;，类似WordPress。但是和WordPress又有很大的不同，原因是jekyll只是一个生成静态网页的工具，不需要数据库支持。但是可以配合第三方服务,例如Disqus。最关键的是jekyll可以免费部署在Github上，而且可以绑定自己的域名。&lt;/p&gt;
+
+&lt;p&gt;Jekyll 的核心其实是一个文本转换引擎。它的概念其实就是： 你用你最喜欢的标记语言来写文章，可以是 Markdown，也可以是 Textile,或者就是简单的 HTML, 然后 Jekyll 就会帮你套入一个或一系列的布局中。在整个过程中你可以设置URL路径, 你的文本在布局中的显示样式等等。这些都可以通过纯文本编辑来实现，最终生成的静态页面就是你的成品了。&lt;a href=&quot;https://jekyllrb.com/&quot;&gt;参考文献&lt;/a&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;112-jekyll的安装&quot;&gt;1.1.2 Jekyll的安装&lt;/h4&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;安装Homebrew&lt;/p&gt;
+
+    &lt;ul&gt;
+      &lt;li&gt;
+        &lt;p&gt;Homebrew是一款Mac OS平台下的软件包管理工具，拥有安装、卸载、更新、查看、搜索等很多实用的功能。简单的一条指令，就可以实现包管理，而不用你关心各种依赖和文件路径的情况，十分方便快捷。&lt;/p&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;p&gt;因为我已安装过，所以安装步骤省略。&lt;a href=&quot;https://www.jianshu.com/p/de6f1d2d37bf&quot;&gt;参考文档&lt;/a&gt;&lt;/p&gt;
+
+        &lt;p&gt;&lt;img src=&quot;/img/images/blog/01/01_homebrew.png&quot; alt=&quot;01_homebrew&quot; /&gt;&lt;/p&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;安装Ruby&lt;/p&gt;
+
+    &lt;ul&gt;
+      &lt;li&gt;
+        &lt;p&gt;jekyll本身基于Ruby开发，因此，想要在本地构建一个测试环境需要具有Ruby的开发和运行环境。&lt;/p&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;p&gt;因为我已安装过，所以安装步骤省略，&lt;a href=&quot;https://jekyllrb.com/docs/installation/macos/&quot;&gt;参考文档&lt;/a&gt;&lt;/p&gt;
+
+        &lt;p&gt;&lt;img src=&quot;/img/images/blog/01/02_ruby.png&quot; alt=&quot;02_ruby&quot; /&gt;&lt;/p&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;安装Jekyll【&lt;a href=&quot;https://jekyllrb.com/docs/&quot;&gt;参考文档1&lt;/a&gt;,&lt;a href=&quot;https://www.jianshu.com/p/8f22ed56da67&quot;&gt;参考文档2&lt;/a&gt;】&lt;/p&gt;
+
+    &lt;ol&gt;
+      &lt;li&gt;
+        &lt;p&gt;安装打包器和jekyll&lt;/p&gt;
+
+        &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;rouge-gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;rouge-code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;gem &lt;span class=&quot;nb&quot;&gt;install&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;--user-install&lt;/span&gt; bundler jekyll
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;p&gt;创建一个新的Jekyll网站&lt;/p&gt;
+
+        &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;rouge-gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;rouge-code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;jekyll new myblog_name
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;        &lt;/div&gt;
+
+        &lt;blockquote&gt;
+          &lt;p&gt;注意：若提示 &lt;code class=&quot;highlighter-rouge&quot;&gt;zsh: command not found: jekyll&lt;/code&gt; ，需要把gem路径配置到PATH里面&lt;/p&gt;
+        &lt;/blockquote&gt;
+
+        &lt;ul&gt;
+          &lt;li&gt;
+            &lt;p&gt;需要把gem路径配置到PATH里面&lt;/p&gt;
+
+            &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;rouge-gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+2
+3
+4
+5
+6
+7
+8
+9
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;rouge-code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;c&quot;&gt;# 1.修改文件，加入相关配置代码&lt;/span&gt;
+	&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;vim .bash_profile
+   &lt;span class=&quot;c&quot;&gt;# jekyll相关配置&lt;/span&gt;
+   &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;JEKYLL_HOME&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/Users/silhouette/.gem/ruby/2.6.0
+   &lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;PATH&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$PATH&lt;/span&gt;:&lt;span class=&quot;nv&quot;&gt;$JEKYLL_HOME&lt;/span&gt;/bin
+&lt;span class=&quot;c&quot;&gt;# 让配置文件生效&lt;/span&gt;
+	&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;source&lt;/span&gt; ~/.bash_profile
+&lt;span class=&quot;c&quot;&gt;# 测试配置是否起效&lt;/span&gt;
+	&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;jekyll &lt;span class=&quot;nt&quot;&gt;-v&lt;/span&gt;
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;            &lt;/div&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;p&gt;创建一个新的Jekyll网站&lt;/p&gt;
+
+        &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;rouge-gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+2
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;rouge-code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;c&quot;&gt;# Create a new Jekyll site at ./myblog.&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;jekyll new myblog
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;p&gt;编译网站并启动本地服务&lt;/p&gt;
+
+        &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;rouge-gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+2
+3
+4
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;rouge-code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;c&quot;&gt;# Change into your new directory.&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd &lt;/span&gt;myblog_name
+&lt;span class=&quot;c&quot;&gt;# Build the site and make it available on a local server.&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;bundle &lt;span class=&quot;nb&quot;&gt;exec &lt;/span&gt;jekyll serve
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;p&gt;访问&lt;a href=&quot;&quot;&gt;http://localhost:4000/&lt;/a&gt;查看效果&lt;/p&gt;
+
+        &lt;p&gt;&lt;img src=&quot;/img/images/blog/01/03_Jekyll效果图.png&quot; alt=&quot;03_Jekyll效果图&quot; style=&quot;zoom:50%;&quot; /&gt;&lt;/p&gt;
+      &lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&quot;12-github-pages&quot;&gt;1.2 GitHub Pages&lt;/h3&gt;
+
+&lt;p&gt;####1.2.1 GitHub Pages介绍&lt;/p&gt;
+
+&lt;p&gt;GitHub Pages是依托于Github仓库的展示你或者你的项目的静态网站。&lt;a href=&quot;https://pages.github.com/&quot;&gt;参考文档&lt;/a&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;122-基于github-pages托管网站&quot;&gt;1.2.2 基于GitHub Pages托管网站&lt;/h4&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;前往&lt;a href=&quot;&quot;&gt;GitHUb&lt;/a&gt;创建一个新的仓库，仓库名称为&lt;em&gt;username.github.io&lt;/em&gt;，其中&lt;em&gt;username&lt;/em&gt;是你的GitHub用户名或者组织名称。&lt;/p&gt;
+
+    &lt;blockquote&gt;
+      &lt;p&gt;注意：仓库的名字必须为：&lt;user_name&gt;(or organization name).github.io&lt;/user_name&gt;&lt;/p&gt;
+    &lt;/blockquote&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;将上一步创建的仓库克隆到本地&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;rouge-gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;rouge-code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;git clone https://github.com/username/silhouetteLy.github.io
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;创建第一个页面并推送到远程仓库&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;rouge-gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+2
+3
+4
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;rouge-code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Hello World&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; index.html
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;git add &lt;span class=&quot;nt&quot;&gt;--all&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;git commit &lt;span class=&quot;nt&quot;&gt;-m&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;初始提交&quot;&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;git push &lt;span class=&quot;nt&quot;&gt;-u&lt;/span&gt; origin master
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;访问&lt;a href=&quot;&quot;&gt;&lt;em&gt;https://username.github.io&lt;/em&gt;&lt;/a&gt;查看效果&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;注：&lt;a href=&quot;https://www.jianshu.com/p/8f22ed56da67&quot;&gt;参考文档&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;###1.3 github pages整合 jekyll&lt;/p&gt;
+
+&lt;h4 id=&quot;131-整合部署&quot;&gt;1.3.1 整合部署&lt;/h4&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;将Jekyll生成的静态网站复制到username.github.io仓库并提交推送到GitHub&lt;/li&gt;
+  &lt;li&gt;访问&lt;a href=&quot;&quot;&gt;&lt;em&gt;https://username.github.io&lt;/em&gt;&lt;/a&gt;查看效果&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;注：&lt;a href=&quot;https://help.github.com/en/github/working-with-github-pages/setting-up-a-github-pages-site-with-jekyll&quot;&gt;更多内容&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h2 id=&quot;二个性化博客网站&quot;&gt;二、个性化博客网站&lt;/h2&gt;
+
+&lt;h3 id=&quot;21-目录结构分析&quot;&gt;2.1 目录结构分析&lt;/h3&gt;
+
+&lt;h4 id=&quot;211-目录结构&quot;&gt;2.1.1 目录结构&lt;/h4&gt;
+
+&lt;p&gt;一个基本的 Jekyll 网站的目录结构一般是像这样的：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-txt&quot;&gt;.
+├── _config.yml   
+├── _data
+|   └── members.yml
+├── _drafts
+|   ├── begin-with-the-crazy-ideas.md
+|   └── on-simplicity-in-technology.md
+├── _includes
+|   ├── footer.html
+|   └── header.html
+├── _layouts
+|   ├── default.html
+|   └── post.html
+├── _posts
+|   ├── 2007-10-29-why-every-programmer-should-play-nethack.md
+|   └── 2009-04-26-barcamp-boston-4-roundup.md
+├── _sass
+|   ├── _base.scss
+|   └── _layout.scss
+├── _site
+├── .jekyll-metadata
+└── index.html # 也可以是带 front matter 的 'index.md' 文件
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;####2.1.2 每个文件的功能&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;&lt;strong&gt;文件 / 目录&lt;/strong&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;strong&gt;描述&lt;/strong&gt;&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;_config.yml&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;存储的是 &lt;a href=&quot;https://www.jekyll.com.cn/docs/configuration/&quot;&gt;配置&lt;/a&gt; 信息。其中许多 参数是可以在命令行中指定的，但是 在此文件中进行设置会更容易些，并且你不必记住它们。&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;_drafts&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;草稿（Drafts）是未发布的文章（posts）。这些文章的文件名中没有包含 日期： &lt;code class=&quot;highlighter-rouge&quot;&gt;title.MARKUP&lt;/code&gt;。了解如何 &lt;a href=&quot;https://www.jekyll.com.cn/docs/posts/#drafts&quot;&gt;使用草稿功能&lt;/a&gt;。&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;_includes&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;你可以加载这些包含部分到你的布局或者文章中以方便重用。可以用打括号加百分号前后包裹的标签 来把 &lt;code class=&quot;highlighter-rouge&quot;&gt;_includes&lt;/code&gt;目录下的文件 包含进来。&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;_layouts&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;layouts（布局）是包裹在文章外部的模板。布局可以在 &lt;a href=&quot;http://jekyllcn.com/docs/frontmatter/&quot;&gt;YAML 头信息&lt;/a&gt;中根据不同文章进行选择。 这将在下一个部分进行介绍。标签 `` 可以将content插入页面中。&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;_posts&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;这里放的就是你的文章了。文件格式很重要，必须要符合: &lt;code class=&quot;highlighter-rouge&quot;&gt;YEAR-MONTH-DAY-title.MARKUP&lt;/code&gt;。 &lt;a href=&quot;http://jekyllcn.com/docs/permalinks/&quot;&gt;永久链接&lt;/a&gt; 可以在文章中自己定制，但是数据和标记语言都是根据文件名来确定的。&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;_data&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;格式化的站点数据应当放在此目录下。Jekyll 将自动加载此目录下的所有数据文件（支持 &lt;code class=&quot;highlighter-rouge&quot;&gt;.yml&lt;/code&gt;、 &lt;code class=&quot;highlighter-rouge&quot;&gt;.yaml&lt;/code&gt;、&lt;code class=&quot;highlighter-rouge&quot;&gt;.json&lt;/code&gt;、&lt;code class=&quot;highlighter-rouge&quot;&gt;.csv&lt;/code&gt; 或 &lt;code class=&quot;highlighter-rouge&quot;&gt;.tsv&lt;/code&gt; 格式和扩展名）， 然后就可以通过 &lt;code class=&quot;highlighter-rouge&quot;&gt;site.data&lt;/code&gt; 来访问了。假定在 此目录下有一个文件名为 &lt;code class=&quot;highlighter-rouge&quot;&gt;members.yml&lt;/code&gt; 的文件，那么你可以通过 &lt;code class=&quot;highlighter-rouge&quot;&gt;site.data.members&lt;/code&gt; 变量来访问该文件中的内容。&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;_sass&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;这些事可以导入（import）到 &lt;code class=&quot;highlighter-rouge&quot;&gt;main.scss&lt;/code&gt; 文件中的 sass 代码片段， &lt;code class=&quot;highlighter-rouge&quot;&gt;main.scss&lt;/code&gt; 文件最终经过处理之后形成一个独立的样式文件 &lt;code class=&quot;highlighter-rouge&quot;&gt;main.css&lt;/code&gt; 并被用于整个站点。&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;_site&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;在 Jekyll 转换完所有的文件之后，将在此目录下放置生成的站点（默认情况下）。 最好将此目录添加到 &lt;code class=&quot;highlighter-rouge&quot;&gt;.gitignore&lt;/code&gt; 文件中。&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;.jekyll-metadata&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;该文件帮助 Jekyll 跟踪哪些文件从上次建立站点开始到现在没有被修改，哪些文件需要在下一次站点建立时重新生成。该文件不会被包含在生成的站点中。将它加入到你的 &lt;code class=&quot;highlighter-rouge&quot;&gt;.gitignore&lt;/code&gt; 文件可能是一个好注意。&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;index.html&lt;/code&gt; or &lt;code class=&quot;highlighter-rouge&quot;&gt;index.md&lt;/code&gt; and other HTML, Markdown files&lt;/td&gt;
+      &lt;td&gt;如果这些文件中包含 &lt;a href=&quot;http://jekyllcn.com/docs/frontmatter/&quot;&gt;YAML 头信息&lt;/a&gt; 部分，Jekyll 就会自动将它们进行转换。当然，其他的如 &lt;code class=&quot;highlighter-rouge&quot;&gt;.html&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;.markdown&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;.md&lt;/code&gt;, 或者 &lt;code class=&quot;highlighter-rouge&quot;&gt;.textile&lt;/code&gt; 等在你的站点根目录下或者不是以上提到的目录中的文件也会被转换。&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Other Files/Folders&lt;/td&gt;
+      &lt;td&gt;其他一些未被提及的目录和文件如 &lt;code class=&quot;highlighter-rouge&quot;&gt;css&lt;/code&gt; 还有 &lt;code class=&quot;highlighter-rouge&quot;&gt;images&lt;/code&gt; 文件夹， &lt;code class=&quot;highlighter-rouge&quot;&gt;favicon.ico&lt;/code&gt; 等文件都将被完全拷贝到生成的 site 中。这里有一些&lt;a href=&quot;http://jekyllcn.com/docs/sites/&quot;&gt;使用 Jekyll 的站点&lt;/a&gt;，如果你感兴趣就来看看吧。&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;注：&lt;a href=&quot;https://www.jekyll.com.cn/docs/structure/&quot;&gt;参考文档&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&quot;22-开始写第一篇博客&quot;&gt;2.2 开始写第一篇博客&lt;/h3&gt;
+
+&lt;p&gt;####2.2.1 开始搭建&lt;/p&gt;
+
+&lt;p&gt;通用修改 &lt;code class=&quot;highlighter-rouge&quot;&gt;_config.yml&lt;/code&gt;文件来轻松的开始搭建自己的博客:Jekyll官方网站还有很多的参数可以调，具体请参考&lt;a href=&quot;http://jekyllcn.com/&quot;&gt;官方文档&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;####2.2.2 写一篇博文&lt;/p&gt;
+
+&lt;p&gt;要发表的文章一般以markdown的格式放在这里&lt;code class=&quot;highlighter-rouge&quot;&gt;_posts/&lt;/code&gt;，你只要看看这篇模板里的文章你就立刻明白该如何设置。&lt;/p&gt;
+
+&lt;p&gt;yaml 头文件(SEO)长这样:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-txt&quot;&gt;---
+layout:     post
+title:      &quot;Welcome to Jekyll!&quot;
+subtitle:   &quot;Hello World, Hello Blog&quot;
+date:       2019-01-01 00:00:00
+author:     &quot;silhouetteLy&quot;
+header-img: &quot;img/post-bg-2019.jpg&quot;
+tags:
+    - Life
+---
+&lt;/code&gt;&lt;/pre&gt;
+
+</description>
+        <pubDate>Sat, 25 Apr 2020 02:44:46 +0800</pubDate>
+        <link>http://localhost:4000/2020/04/25/build-mine-blog/</link>
+        <guid isPermaLink="true">http://localhost:4000/2020/04/25/build-mine-blog/</guid>
+        
+        <category>Blog</category>
+        
+        
+      </item>
+    
+  </channel>
+</rss>
