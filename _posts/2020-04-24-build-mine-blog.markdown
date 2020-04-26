@@ -3,7 +3,7 @@ layout:     post
 title:      "基于github pages + jekyll搭建个人博客网站"
 subtitle:   "Hello World, My First Blog"
 date:       2020-04-24 18:44:46
-author:     "silhouetteLy"
+author:     "silhouette"
 header-img: "img/images/blog/01/00-post-bg.jpg"
 tags:
     - Blog
@@ -31,7 +31,7 @@ Jekyll 的核心其实是一个文本转换引擎。它的概念其实就是： 
 
    * Homebrew是一款Mac OS平台下的软件包管理工具，拥有安装、卸载、更新、查看、搜索等很多实用的功能。简单的一条指令，就可以实现包管理，而不用你关心各种依赖和文件路径的情况，十分方便快捷。
 
-   * 因为我已安装过，所以安装步骤省略。[参考文档](https://www.jianshu.com/p/de6f1d2d37bf)
+   * 因为我已安装过，所以安装步骤省略。
 
      ![01_homebrew](/img/images/blog/01/01_homebrew.png)
 
@@ -39,11 +39,11 @@ Jekyll 的核心其实是一个文本转换引擎。它的概念其实就是： 
 
    * jekyll本身基于Ruby开发，因此，想要在本地构建一个测试环境需要具有Ruby的开发和运行环境。
 
-   * 因为我已安装过，所以安装步骤省略，[参考文档](https://jekyllrb.com/docs/installation/macos/)
+   * 因为我已安装过，所以安装步骤省略。
 
      <img src="/img/images/blog/01/02_ruby.png" alt="02_ruby" />
 
-3. 安装Jekyll【[参考文档1](https://jekyllrb.com/docs/),[参考文档2](https://www.jianshu.com/p/8f22ed56da67)】
+3. 安装Jekyll
 
    1. 安装打包器和jekyll
 
@@ -51,53 +51,57 @@ Jekyll 的核心其实是一个文本转换引擎。它的概念其实就是： 
       $ gem install --user-install bundler jekyll
       ```
 
-   2. 创建一个新的Jekyll网站
+      
 
+   2. 创建一个新的Jekyll网站
+   
       ```shell
-      $ jekyll new myblog_name
+   $ jekyll new myblog_name
       ```
 
       >注意：若提示 `zsh: command not found: jekyll` ，需要把gem路径配置到PATH里面
 
       * 需要把gem路径配置到PATH里面
-
+   
         ```shell
         # 1.修改文件，加入相关配置代码
-        	$ vim .bash_profile
-           # jekyll相关配置
-           $ export JEKYLL_HOME=/Users/silhouette/.gem/ruby/2.6.0
-           $ export PATH=$PATH:$JEKYLL_HOME/bin
-        # 让配置文件生效
-        	$ source ~/.bash_profile
-        # 测试配置是否起效
-        	$ jekyll -v
+        $ vim .bash_profile
+        # jekyll相关配置
+        $ export JEKYLL_HOME=/Users/silhouette/.gem/ruby/2.6.0
+        $ export PATH=$PATH:$JEKYLL_HOME/bin
+        #2.让配置文件生效
+        $ source ~/.bash_profile
+        #3.测试配置是否起效
+     $ jekyll -v
         ```
 
    3. 创建一个新的Jekyll网站
-
+   
       ```shell
       # Create a new Jekyll site at ./myblog.
-      $ jekyll new myblog
+   $ jekyll new myblog
       ```
 
    4. 编译网站并启动本地服务
-
+   
       ```shell
       # Change into your new directory.
       $ cd myblog_name
       # Build the site and make it available on a local server.
-      $ bundle exec jekyll serve
+   $ bundle exec jekyll serve
       ```
 
    5. 访问[http://localhost:4000/]()查看效果
-
+   
       <img src="/img/images/blog/01/03_Jekyll效果图.png" alt="03_Jekyll效果图" style="zoom:50%;" />
+   
+   > 参考文档：[Homebrew安装](https://www.jianshu.com/p/de6f1d2d37bf)、[Jekyll安装](https://www.jianshu.com/p/8f22ed56da67)
 
 ### 1.2 GitHub Pages
 
 ####1.2.1 GitHub Pages介绍
 
-GitHub Pages是依托于Github仓库的展示你或者你的项目的静态网站。[参考文档](https://pages.github.com/)
+GitHub Pages是依托于Github仓库的展示你或者你的项目的静态网站。
 
 #### 1.2.2 基于GitHub Pages托管网站
 
@@ -122,16 +126,12 @@ GitHub Pages是依托于Github仓库的展示你或者你的项目的静态网�
 
 4. 访问[*https://username.github.io*]()查看效果
 
->注：[参考文档](https://www.jianshu.com/p/8f22ed56da67)
-
 ###1.3 github pages整合 jekyll
 
 #### 1.3.1 整合部署
 
 1. 将Jekyll生成的静态网站复制到username.github.io仓库并提交推送到GitHub
-2. 访问[*https://username.github.io*]()查看效果
-
->注：[更多内容](https://help.github.com/en/github/working-with-github-pages/setting-up-a-github-pages-site-with-jekyll)
+2. 访问[https://username.github.io]()查看效果
 
 ## 二、个性化博客网站
 
@@ -194,18 +194,34 @@ GitHub Pages是依托于Github仓库的展示你或者你的项目的静态网�
 
 要发表的文章一般以markdown的格式放在这里`_posts/`，你只要看看这篇模板里的文章你就立刻明白该如何设置。
 
-yaml 头文件(SEO)长这样:
+* 注意在头文件加上下面的标注
 
-```txt
----
-layout:     post
-title:      "Welcome to Jekyll!"
-subtitle:   "Hello World, Hello Blog"
-date:       2019-01-01 00:00:00
-author:     "silhouetteLy"
-header-img: "img/post-bg-2019.jpg"
-tags:
-    - Life
----
-```
+  ```txt
+  ---
+  layout:     post
+  title:      "Welcome to Jekyll!"
+  subtitle:   "Hello World, Hello Blog"
+  date:       2019-01-01 00:00:00
+  author:     "silhouette"
+  header-img: "img/post-bg-2019.jpg"
+  tags:
+      - Life
+  ---
+  ```
 
+* 运行启动服务，查看效果，但是报错了
+
+  ```txt
+  Dependency Error: Yikes! It looks like you don't have jekyll-paginate or one of its dependencies installed. In order to use Jekyll as currently configured, you'll need to install this gem. The full error message from Ruby is: 'cannot load such file -- jekyll-paginate' If you run into trouble, you can find helpful resources at https://jekyllrb.com/help/!
+  ```
+
+  * 原因分析：使用jekyll分页功能是报错
+  * 解决方法：
+    * 在`_config.yml`文件中添加：`plugins: [jekyll-paginate]`
+    * 在`Gemfile`文件末尾中添加：`gem 'jekyll-paginate', group: :jekyll_plugins`
+
+> 参考文献：[模版文件](http://www.imooc.com/article/289865#%E7%8E%AF%E5%A2%83%E8%A6%81%E6%B1%82)
+
+## 后记
+
+博客已经建立起来了，还有很多功能与模块后续会陆续完善，接下来就是将原先在 Typora 上的笔记迁移到博客上。

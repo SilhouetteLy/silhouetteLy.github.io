@@ -62,7 +62,7 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="/">SilhouetteLy Blog</a>
+            <a class="navbar-brand" href="/">Silhouette Liu Blog</a>
         </div>
 
         <!-- Collect the nav links, forms, and other content for toggling -->
@@ -148,7 +148,7 @@
                     
                     <h2 class="subheading">Hello World, My First Blog</h2>
                     
-                    <span class="meta">Posted by silhouetteLy on April 25, 2020</span>
+                    <span class="meta">Posted by silhouette on April 25, 2020</span>
                 </div>
             </div>
         </div>
@@ -195,7 +195,7 @@
         <p>Homebrew是一款Mac OS平台下的软件包管理工具，拥有安装、卸载、更新、查看、搜索等很多实用的功能。简单的一条指令，就可以实现包管理，而不用你关心各种依赖和文件路径的情况，十分方便快捷。</p>
       </li>
       <li>
-        <p>因为我已安装过，所以安装步骤省略。<a href="https://www.jianshu.com/p/de6f1d2d37bf">参考文档</a></p>
+        <p>因为我已安装过，所以安装步骤省略。</p>
 
         <p><img src="/img/images/blog/01/01_homebrew.png" alt="01_homebrew" /></p>
       </li>
@@ -209,29 +209,27 @@
         <p>jekyll本身基于Ruby开发，因此，想要在本地构建一个测试环境需要具有Ruby的开发和运行环境。</p>
       </li>
       <li>
-        <p>因为我已安装过，所以安装步骤省略，<a href="https://jekyllrb.com/docs/installation/macos/">参考文档</a></p>
+        <p>因为我已安装过，所以安装步骤省略。</p>
 
         <p><img src="/img/images/blog/01/02_ruby.png" alt="02_ruby" /></p>
       </li>
     </ul>
   </li>
   <li>
-    <p>安装Jekyll【<a href="https://jekyllrb.com/docs/">参考文档1</a>,<a href="https://www.jianshu.com/p/8f22ed56da67">参考文档2</a>】</p>
+    <p>安装Jekyll</p>
 
     <ol>
       <li>
         <p>安装打包器和jekyll</p>
 
-        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
-</pre></td><td class="rouge-code"><pre><span class="nv">$ </span>gem <span class="nb">install</span> <span class="nt">--user-install</span> bundler jekyll
-</pre></td></tr></tbody></table></code></pre></div>        </div>
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>gem <span class="nb">install</span> <span class="nt">--user-install</span> bundler jekyll
+</code></pre></div>        </div>
       </li>
       <li>
         <p>创建一个新的Jekyll网站</p>
 
-        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
-</pre></td><td class="rouge-code"><pre><span class="nv">$ </span>jekyll new myblog_name
-</pre></td></tr></tbody></table></code></pre></div>        </div>
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>jekyll new myblog_name
+</code></pre></div>        </div>
 
         <blockquote>
           <p>注意：若提示 <code class="highlighter-rouge">zsh: command not found: jekyll</code> ，需要把gem路径配置到PATH里面</p>
@@ -241,49 +239,34 @@
           <li>
             <p>需要把gem路径配置到PATH里面</p>
 
-            <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
-2
-3
-4
-5
-6
-7
-8
-9
-</pre></td><td class="rouge-code"><pre><span class="c"># 1.修改文件，加入相关配置代码</span>
-	<span class="nv">$ </span>vim .bash_profile
-   <span class="c"># jekyll相关配置</span>
-   <span class="nv">$ </span><span class="nb">export </span><span class="nv">JEKYLL_HOME</span><span class="o">=</span>/Users/silhouette/.gem/ruby/2.6.0
-   <span class="nv">$ </span><span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:<span class="nv">$JEKYLL_HOME</span>/bin
-<span class="c"># 让配置文件生效</span>
-	<span class="nv">$ </span><span class="nb">source</span> ~/.bash_profile
-<span class="c"># 测试配置是否起效</span>
-	<span class="nv">$ </span>jekyll <span class="nt">-v</span>
-</pre></td></tr></tbody></table></code></pre></div>            </div>
+            <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 1.修改文件，加入相关配置代码</span>
+<span class="nv">$ </span>vim .bash_profile
+<span class="c"># jekyll相关配置</span>
+<span class="nv">$ </span><span class="nb">export </span><span class="nv">JEKYLL_HOME</span><span class="o">=</span>/Users/silhouette/.gem/ruby/2.6.0
+<span class="nv">$ </span><span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:<span class="nv">$JEKYLL_HOME</span>/bin
+<span class="c">#2.让配置文件生效</span>
+<span class="nv">$ </span><span class="nb">source</span> ~/.bash_profile
+<span class="c">#3.测试配置是否起效</span>
+<span class="nv">$ </span>jekyll <span class="nt">-v</span>
+</code></pre></div>            </div>
           </li>
         </ul>
       </li>
       <li>
         <p>创建一个新的Jekyll网站</p>
 
-        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
-2
-</pre></td><td class="rouge-code"><pre><span class="c"># Create a new Jekyll site at ./myblog.</span>
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Create a new Jekyll site at ./myblog.</span>
 <span class="nv">$ </span>jekyll new myblog
-</pre></td></tr></tbody></table></code></pre></div>        </div>
+</code></pre></div>        </div>
       </li>
       <li>
         <p>编译网站并启动本地服务</p>
 
-        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
-2
-3
-4
-</pre></td><td class="rouge-code"><pre><span class="c"># Change into your new directory.</span>
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Change into your new directory.</span>
 <span class="nv">$ </span><span class="nb">cd </span>myblog_name
 <span class="c"># Build the site and make it available on a local server.</span>
 <span class="nv">$ </span>bundle <span class="nb">exec </span>jekyll serve
-</pre></td></tr></tbody></table></code></pre></div>        </div>
+</code></pre></div>        </div>
       </li>
       <li>
         <p>访问<a href="">http://localhost:4000/</a>查看效果</p>
@@ -291,6 +274,10 @@
         <p><img src="/img/images/blog/01/03_Jekyll效果图.png" alt="03_Jekyll效果图" style="zoom:50%;" /></p>
       </li>
     </ol>
+
+    <blockquote>
+      <p>参考文档：<a href="https://www.jianshu.com/p/de6f1d2d37bf">Homebrew安装</a>、<a href="https://www.jianshu.com/p/8f22ed56da67">Jekyll安装</a></p>
+    </blockquote>
   </li>
 </ol>
 
@@ -298,7 +285,7 @@
 
 <p>####1.2.1 GitHub Pages介绍</p>
 
-<p>GitHub Pages是依托于Github仓库的展示你或者你的项目的静态网站。<a href="https://pages.github.com/">参考文档</a></p>
+<p>GitHub Pages是依托于Github仓库的展示你或者你的项目的静态网站。</p>
 
 <h4 id="122-基于github-pages托管网站">1.2.2 基于GitHub Pages托管网站</h4>
 
@@ -313,31 +300,22 @@
   <li>
     <p>将上一步创建的仓库克隆到本地</p>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
-</pre></td><td class="rouge-code"><pre><span class="nv">$ </span>git clone https://github.com/username/silhouetteLy.github.io
-</pre></td></tr></tbody></table></code></pre></div>    </div>
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>git clone https://github.com/username/silhouetteLy.github.io
+</code></pre></div>    </div>
   </li>
   <li>
     <p>创建第一个页面并推送到远程仓库</p>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
-2
-3
-4
-</pre></td><td class="rouge-code"><pre><span class="nv">$ </span><span class="nb">echo</span> <span class="s2">"Hello World"</span> <span class="o">&gt;</span> index.html
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">echo</span> <span class="s2">"Hello World"</span> <span class="o">&gt;</span> index.html
 <span class="nv">$ </span>git add <span class="nt">--all</span>
 <span class="nv">$ </span>git commit <span class="nt">-m</span> <span class="s2">"初始提交"</span>
 <span class="nv">$ </span>git push <span class="nt">-u</span> origin master
-</pre></td></tr></tbody></table></code></pre></div>    </div>
+</code></pre></div>    </div>
   </li>
   <li>
     <p>访问<a href=""><em>https://username.github.io</em></a>查看效果</p>
   </li>
 </ol>
-
-<blockquote>
-  <p>注：<a href="https://www.jianshu.com/p/8f22ed56da67">参考文档</a></p>
-</blockquote>
 
 <p>###1.3 github pages整合 jekyll</p>
 
@@ -345,12 +323,8 @@
 
 <ol>
   <li>将Jekyll生成的静态网站复制到username.github.io仓库并提交推送到GitHub</li>
-  <li>访问<a href=""><em>https://username.github.io</em></a>查看效果</li>
+  <li>访问<a href="">https://username.github.io</a>查看效果</li>
 </ol>
-
-<blockquote>
-  <p>注：<a href="https://help.github.com/en/github/working-with-github-pages/setting-up-a-github-pages-site-with-jekyll">更多内容</a></p>
-</blockquote>
 
 <h2 id="二个性化博客网站">二、个性化博客网站</h2>
 
@@ -455,20 +429,47 @@
 
 <p>要发表的文章一般以markdown的格式放在这里<code class="highlighter-rouge">_posts/</code>，你只要看看这篇模板里的文章你就立刻明白该如何设置。</p>
 
-<p>yaml 头文件(SEO)长这样:</p>
+<ul>
+  <li>
+    <p>注意在头文件加上下面的标注</p>
 
-<pre><code class="language-txt">---
+    <pre><code class="language-txt">---
 layout:     post
 title:      "Welcome to Jekyll!"
 subtitle:   "Hello World, Hello Blog"
 date:       2019-01-01 00:00:00
-author:     "silhouetteLy"
+author:     "silhouette"
 header-img: "img/post-bg-2019.jpg"
 tags:
     - Life
 ---
 </code></pre>
+  </li>
+  <li>
+    <p>运行启动服务，查看效果，但是报错了</p>
 
+    <pre><code class="language-txt">Dependency Error: Yikes! It looks like you don't have jekyll-paginate or one of its dependencies installed. In order to use Jekyll as currently configured, you'll need to install this gem. The full error message from Ruby is: 'cannot load such file -- jekyll-paginate' If you run into trouble, you can find helpful resources at https://jekyllrb.com/help/!
+</code></pre>
+
+    <ul>
+      <li>原因分析：使用jekyll分页功能是报错</li>
+      <li>解决方法：
+        <ul>
+          <li>在<code class="highlighter-rouge">_config.yml</code>文件中添加：<code class="highlighter-rouge">plugins: [jekyll-paginate]</code></li>
+          <li>在<code class="highlighter-rouge">Gemfile</code>文件末尾中添加：<code class="highlighter-rouge">gem 'jekyll-paginate', group: :jekyll_plugins</code></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<blockquote>
+  <p>参考文献：<a href="http://www.imooc.com/article/289865#%E7%8E%AF%E5%A2%83%E8%A6%81%E6%B1%82">模版文件</a></p>
+</blockquote>
+
+<h2 id="后记">后记</h2>
+
+<p>博客已经建立起来了，还有很多功能与模块后续会陆续完善，接下来就是将原先在 Typora 上的笔记迁移到博客上。</p>
 
 
                 <hr>
@@ -478,6 +479,10 @@ tags:
 
                 <ul class="pager">
                     
+                    
+                    <li class="next">
+                        <a href="/2020/04/26/literature-one/" data-toggle="tooltip" data-placement="top" title="山月记">Next Post &rarr;</a>
+                    </li>
                     
                 </ul>
 
@@ -500,6 +505,8 @@ tags:
                     <hr class="hidden-sm hidden-xs">
                     <h5><a href="/tags/">FEATURED TAGS</a></h5>
                     <div class="tags">
+        				
+                            
         				
                             
         				
@@ -583,7 +590,7 @@ tags:
                     
                 </ul>
                 <p class="copyright text-muted">
-                    Copyright &copy; SilhouetteLy Blog 2020
+                    Copyright &copy; Silhouette Liu Blog 2020
                     <br>
                     Theme by <a href="https://caojiele.com">caojiele</a> |
                     <iframe
