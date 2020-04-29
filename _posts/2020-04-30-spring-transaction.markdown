@@ -202,7 +202,7 @@ tags:
 3. 准备数据库表和实体类
 
    ```java
-   public class Account implements Serializable {
+   public class Product implements Serializable {
    
        private String id; // 主键
        ……
@@ -212,7 +212,7 @@ tags:
 4. 编写业务层接口和实现类
 
    ```java
-   public interface IAccountService {
+   public interface ProductService {
    	void transfer(); //增删改 
    }
    ```
