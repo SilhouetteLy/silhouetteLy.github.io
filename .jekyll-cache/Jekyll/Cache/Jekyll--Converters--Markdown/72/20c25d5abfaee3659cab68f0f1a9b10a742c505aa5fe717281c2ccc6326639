@@ -1,0 +1,139 @@
+I"�/<h2 id="前言">前言</h2>
+
+<h4 id="添加返回按钮块">添加返回按钮块</h4>
+
+<p>只需两步就可以在页面添加一个固定的返回顶部按钮，这里没有加JS代码，没什么漂亮的效果，只是功能的实现。</p>
+
+<ol>
+  <li>
+    <p>在 <code class="highlighter-rouge">footer.html</code>文件中添加样式</p>
+
+    <div class="language-html highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;div</span> <span class="na">id=</span><span class="s">"backtop"</span><span class="nt">&gt;</span>
+   <span class="nt">&lt;a</span> <span class="na">href=</span><span class="s">"#"</span><span class="nt">&gt;</span>TOP<span class="nt">&lt;/a&gt;</span>
+<span class="nt">&lt;/div&gt;</span> 
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>添加按钮的css样式到 css 文件中</p>
+
+    <div class="language-css highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">#backtop</span> <span class="nt">a</span> <span class="p">{</span> <span class="c">/* back to top button */</span>
+    <span class="nl">text-align</span><span class="p">:</span> <span class="nb">center</span><span class="p">;</span>
+    <span class="nl">line-height</span><span class="p">:</span> <span class="m">50px</span><span class="p">;</span>
+    <span class="nl">font-size</span><span class="p">:</span> <span class="m">16px</span><span class="p">;</span>
+    <span class="nl">width</span><span class="p">:</span><span class="m">50px</span><span class="p">;</span>
+    <span class="nl">height</span><span class="p">:</span> <span class="m">50px</span><span class="p">;</span>
+    <span class="nl">position</span><span class="p">:</span> <span class="nb">fixed</span><span class="p">;</span>
+    <span class="nl">bottom</span><span class="p">:</span> <span class="m">10px</span><span class="p">;</span> <span class="c">/* 小按钮到浏览器底边的距离 */</span>
+    <span class="nl">right</span><span class="p">:</span> <span class="m">60px</span><span class="p">;</span> <span class="c">/* 小按钮到浏览器右边框的距离 */</span>
+    <span class="nl">color</span><span class="p">:</span> <span class="nb">rgb</span><span class="p">(</span><span class="m">64</span><span class="p">,</span><span class="m">120</span><span class="p">,</span><span class="m">192</span><span class="p">);</span> <span class="c">/* 小按钮中文字的颜色 */</span>
+    <span class="nl">z-index</span><span class="p">:</span> <span class="m">1000</span><span class="p">;</span>
+    <span class="nl">background</span><span class="p">:</span> <span class="m">#fff</span><span class="p">;</span> <span class="c">/* 小按钮底色 */</span>
+    <span class="nl">padding</span><span class="p">:</span> <span class="nb">auto</span><span class="p">;</span> <span class="c">/* 小按钮中文字到按钮边缘的距离 */</span>
+    <span class="nl">border-radius</span><span class="p">:</span> <span class="m">50px</span><span class="p">;</span> <span class="c">/* 小按钮圆角的弯曲程度（半径）*/</span>
+    <span class="nl">-moz-border-radius</span><span class="p">:</span> <span class="m">50px</span><span class="p">;</span>
+    <span class="nl">-webkit-border-radius</span><span class="p">:</span> <span class="m">50px</span><span class="p">;</span>
+    <span class="nl">font-weight</span><span class="p">:</span> <span class="nb">bold</span><span class="p">;</span> <span class="c">/* 小按钮中文字的粗细 */</span>
+    <span class="nl">text-decoration</span><span class="p">:</span> <span class="nb">none</span> <span class="cp">!important</span><span class="p">;</span>
+    <span class="nl">box-shadow</span><span class="p">:</span><span class="m">0</span> <span class="m">1px</span> <span class="m">2px</span> <span class="n">rgba</span><span class="p">(</span><span class="m">0</span><span class="p">,</span><span class="m">0</span><span class="p">,</span><span class="m">0</span><span class="p">,</span><span class="m">.15</span><span class="p">),</span> <span class="m">0</span> <span class="m">1px</span> <span class="m">0</span> <span class="m">#ffffff</span> <span class="nb">inset</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="nf">#backtop</span> <span class="nt">a</span><span class="nd">:hover</span> <span class="p">{</span> <span class="c">/* 小按钮上有鼠标悬停时 */</span>
+    <span class="nl">background</span><span class="p">:</span> <span class="n">rgba</span><span class="p">(</span><span class="m">64</span><span class="p">,</span><span class="m">120</span><span class="p">,</span><span class="m">192</span><span class="p">,</span><span class="m">0.8</span><span class="p">);</span> <span class="c">/* 小按钮的底色 */</span>
+    <span class="nl">color</span><span class="p">:</span> <span class="m">#fff</span><span class="p">;</span> <span class="c">/* 文字颜色 */</span>
+<span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>在<code class="highlighter-rouge">head.html</code>文件引入 CSS 文件</p>
+
+    <div class="language-html highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">&lt;!-- Custom CSS --&gt;</span>
+<span class="nt">&lt;link</span> <span class="na">rel=</span><span class="s">"stylesheet"</span> <span class="na">href=</span><span class="s">"/css/silhouette.css"</span><span class="nt">&gt;</span>
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<blockquote>
+  <p>注意：以上内容参考至 –<a href="https://www.smslit.top/2015/10/28/backToTop-Jekyll/">Jekyll博文内链和返回顶部按钮</a></p>
+</blockquote>
+
+<h4 id="全局搜索">全局搜索</h4>
+
+<p>为了能更快额加入搜索功能，就在网上直接到了一个已经封装好了的单独组件，通过<a href="https://github.com/androiddevelop/jekyll-search">下载链接</a>将组建代码拉到本地。然后就可以开始加入操作了：</p>
+
+<ol>
+  <li>
+    <p>将search目录放至于博客根目录下，其中search目录结构如下:</p>
+
+    <pre><code class="language-txt"> search
+ ├── cb-footer-add.html
+ ├── cb-search.json
+ ├── css
+ │   └── cb-search.css
+ ├── img
+ │   ├── cb-close.png
+ │   └── cb-search.png
+ └── js
+     ├── bootstrap3-typeahead.min.js
+     └── cb-search.js
+</code></pre>
+  </li>
+  <li>
+    <p>在<code class="highlighter-rouge">_include/footer.html</code>中的<code class="highlighter-rouge">/footer&gt;</code>前加入<code class="highlighter-rouge">cb-foot-add.html</code>中的代码。</p>
+
+    <div class="language-html highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">"cb-search-tool"</span> <span class="na">style=</span><span class="s">"position: fixed; top: 0px ; bottom: 0px; left: 0px; right:  0px;
+      opacity: 0.95; background-color: #111111; z-index: 9999; display: none;"</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"text"</span> <span class="na">class=</span><span class="s">"form-control cb-search-content"</span> <span class="na">id=</span><span class="s">"cb-search-content"</span> <span class="na">style=</span><span class="s">"position: fixed; top: 60px"</span> <span class="na">placeholder=</span><span class="s">"文章标题 日期 &gt;标签"</span> <span class="nt">&gt;</span>
+   
+    <span class="nt">&lt;div</span> <span class="na">style=</span><span class="s">"position: fixed; top: 16px; right: 16px;"</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;img</span> <span class="na">src=</span><span class="s">"/search/img/cb-close.png"</span>  <span class="na">id=</span><span class="s">"cb-close-btn"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;/div&gt;</span>
+<span class="nt">&lt;/div&gt;</span>
+   
+<span class="nt">&lt;div</span> <span class="na">style=</span><span class="s">"position: fixed; right: 16px; bottom: 20px;"</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;img</span> <span class="na">src=</span><span class="s">"/search/img/cb-search.png"</span>  <span class="na">id=</span><span class="s">"cb-search-btn"</span>  <span class="na">title=</span><span class="s">"双击ctrl试一下"</span><span class="nt">/&gt;</span>
+<span class="nt">&lt;/div&gt;</span>
+   
+<span class="nt">&lt;link</span> <span class="na">rel=</span><span class="s">"stylesheet"</span> <span class="na">href=</span><span class="s">"/search/css/cb-search.css"</span><span class="nt">&gt;</span>
+   
+<span class="nt">&lt;script </span><span class="na">src=</span><span class="s">"/search/js/bootstrap3-typeahead.min.js"</span><span class="nt">&gt;&lt;/script&gt;</span>
+<span class="nt">&lt;script </span><span class="na">src=</span><span class="s">"/search/js/cb-search.js"</span><span class="nt">&gt;&lt;/script&gt;</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>从第二步可知，加入的代码包含了<code class="highlighter-rouge">CSS</code>和<code class="highlighter-rouge">JS</code>代码块，为了代码的整洁性，我们将引入<code class="highlighter-rouge">CSS</code>的代码放入<code class="highlighter-rouge">head.html</code>中，注意需要事先引入<strong>bootstrap的css文件</strong>，如果没有的话，则得先引入；有的话就放在下面，如下：</p>
+
+    <div class="language-html highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">&lt;!-- Bootstrap Core CSS --&gt;</span>
+<span class="nt">&lt;link</span> <span class="na">rel=</span><span class="s">"stylesheet"</span> <span class="na">href=</span><span class="s">"/css/bootstrap.min.css"</span><span class="nt">&gt;</span>
+   
+<span class="c">&lt;!-- Custom CSS --&gt;</span>
+<span class="nt">&lt;link</span> <span class="na">rel=</span><span class="s">"stylesheet"</span> <span class="na">href=</span><span class="s">"/css/silhouette.css"</span><span class="nt">&gt;</span>
+<span class="c">&lt;!-- Pygments Github CSS --&gt;</span>
+<span class="nt">&lt;link</span> <span class="na">rel=</span><span class="s">"stylesheet"</span> <span class="na">href=</span><span class="s">"/css/syntax.css"</span><span class="nt">&gt;</span>
+   
+ <span class="c">&lt;!--jekyll Search--&gt;</span>
+<span class="nt">&lt;link</span> <span class="na">rel=</span><span class="s">"stylesheet"</span> <span class="na">href=</span><span class="s">"/search/css/cb-search.css"</span><span class="nt">&gt;</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>将第二步中 copy 的引入JS 的代码除出<code class="highlighter-rouge">&lt;footer&gt;</code>标签中，统一下面，和其它的 JS 文件放在一起。注意注意需要事先引入<strong>jquery</strong>与<strong>bootstrap的 js 文件)</strong>，并且引入的 jquery的标签得早于贴进去的 <code class="highlighter-rouge">cb-search.js</code>。如下：</p>
+
+    <div class="language-html highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">&lt;!-- jQuery --&gt;</span>
+<span class="nt">&lt;script </span><span class="na">src=</span><span class="s">"/js/jquery.min.js "</span><span class="nt">&gt;&lt;/script&gt;</span>
+   
+<span class="c">&lt;!-- Bootstrap Core JavaScript --&gt;</span>
+<span class="nt">&lt;script </span><span class="na">src=</span><span class="s">"/js/bootstrap.min.js "</span><span class="nt">&gt;&lt;/script&gt;</span>
+   
+<span class="c">&lt;!--jekyll search--&gt;</span>
+<span class="nt">&lt;script </span><span class="na">src=</span><span class="s">"/search/js/bootstrap3-typeahead.min.js"</span><span class="nt">&gt;&lt;/script&gt;</span>
+<span class="nt">&lt;script </span><span class="na">src=</span><span class="s">"/search/js/cb-search.js"</span><span class="nt">&gt;&lt;/script&gt;</span>
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<blockquote>
+  <p>注：以上内容参考链接 – <a href="http://www.codeboy.me/2016/01/18/jekyll-search-component/">Jekyll search组件</a></p>
+</blockquote>
+
+<blockquote>
+  <p><em>如有任何知识产权、版权问题或理论错误，还请指正。</em></p>
+</blockquote>
+:ET

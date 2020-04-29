@@ -19,7 +19,7 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/css/hux-blog.min.css"> 
-
+    <link rel="stylesheet" href="/css/silhouette.css">
     <!-- Pygments Github CSS -->
     <link rel="stylesheet" href="/css/syntax.css">
 
@@ -28,7 +28,8 @@
     <!-- Hux change font-awesome CDN to qiniu -->
     <link href="http://cdn.staticfile.org/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
 
-
+    <!--jekyll Search-->
+    <link rel="stylesheet" href="/search/css/cb-search.css">
     <!-- Hux Delete, sad but pending in China
     <link href='http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
     <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/
@@ -507,6 +508,12 @@ tags:
                     <div class="tags">
         				
                             
+                				<a href="/tags/#Blog" title="Blog" rel="2">
+                                    Blog
+                                </a>
+                            
+        				
+                            
         				
                             
         				
@@ -602,8 +609,24 @@ tags:
             </div>
         </div>
     </div>
-</footer>
+    <!--回到顶部-->
+    <div id="backtop">
+       <a href="#">TOP</a>
+    </div> 
+    <!--搜索框-->
+    <div class="cb-search-tool" style="position: fixed; top: 0px ; bottom: 0px; left: 0px; right:  0px;
+      opacity: 0.95; background-color: #111111; z-index: 9999; display: none;">
+    	<input type="text" class="form-control cb-search-content" id="cb-search-content" style="position: fixed; top: 60px" placeholder="文章标题 日期 >标签" >
 
+    	<div style="position: fixed; top: 16px; right: 16px;">
+        	<img src="/search/img/cb-close.png"  id="cb-close-btn"/>
+    	</div>
+    </div>
+
+    <div style="position: fixed; right: 16px; bottom: 20px;">
+    	<img src="/search/img/cb-search.png"  id="cb-search-btn"  title="双击ctrl试一下"/>
+    </div>
+</footer>
 <!-- jQuery -->
 <script src="/js/jquery.min.js "></script>
 
@@ -612,7 +635,11 @@ tags:
 
 <!-- Custom Theme JavaScript -->
 <script src="/js/hux-blog.min.js "></script>
+<script src="/js/silhouette.js "></script>
 
+<!--jekyll search-->
+<script src="/search/js/bootstrap3-typeahead.min.js"></script>
+<script src="/search/js/cb-search.js"></script>
 
 <!-- async load function -->
 <script>
@@ -682,5 +709,6 @@ tags:
 <!-- Migrate from head to bottom, no longer block render and still work -->
 
 </body>
-
+<!-- or without installing anything -->
+<script src="https://unpkg.com/simple-jekyll-search/dest/simple-jekyll-search.min.js"></script>
 </html>
