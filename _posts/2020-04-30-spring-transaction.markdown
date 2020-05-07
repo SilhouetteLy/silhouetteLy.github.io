@@ -129,6 +129,7 @@ tags:
 我们先回顾一下异常的架构
 
 * 异常的继承结构：Error和RuntimeException及其子类成为未检查异常（unchecked），其它异常成为已检查异常（checked）。
+* <img src="/img/images/spring/05/01-spring-interface.png" alt="01-spring-interface" />
 * <img src="/img/images/spring/05/02-exception.png" alt="02-exception" />
 
 默认配置下，Spring 只有在抛出异常为运行时unchecked异常时才回滚该事务，也就是抛出异常为RuntimeException 的子类(Errors也会导致事务回滚)，而抛出checked异常则不会导致事务回滚。可以明确的配置在抛出异常时回滚事务，`包括checked异常`。也可以明确定义那些异常抛出时不回滚事务。还可以编程性的通过setRollbackOnly() 方法指示一个事务必须回滚，在调用完 setRollbackOnly()后你所能执行的唯一操作就是回滚。		
@@ -140,13 +141,13 @@ tags:
 3. 基于 @Transaction 的声明式事务管理
 4. 基于 Aspectj AOP 配置事务
 
-总结：
+【总结】
 
 * `编程式事务`管理使用 **TransactionTemplate** 或者直接使用底层的 `PlatformTransactionManager`。对与编程式事务管理，Spring 推荐使用 **TransactionTemplate**。 
 * `声明式事务`管理建立在 **AOP** 之上的，其本质是对方法前后进行拦截，然后在目标方法开始之前创建或者加入一个事务，在执行完目标方法之后根据执行情况提交或者回滚事务。声明式事务最大优点是不需要通过编程的方式管理事务，这样就不需要在业务代码中参杂事务管理的代码，只需要在配置文件中作相关的事务规则声明(或通过给予 @Transaction注解的方式)，便可以将事务规则应用到业务逻辑中。
 * 显然声明式事务管理要优于编程式事务管理，这正是 Spring 提倡的非侵入式的开发方式。声明式事务管理使业务代码不受污染，一个普通的 POJO 对象，只需要加上注解就可以获取完全的事务支持。和编程式事务管理相比，声明式事务唯一的不足地方是，后者的最细粒度只能作用到方法级别，无法做到像编程式事务那样可以作用到代码块级别。但是即使有这样的需求，也存在很多变通的方法，比如，可以将需要进行事务管理的代码块独立为方法等等。
 
-##二、`Spring事务实现具体`
+## 二、`Spring事务实现具体`
 
 #### 2.1 环境搭建
 

@@ -1,4 +1,4 @@
-I"��<h2 id="前言">前言</h2>
+I"r�<h2 id="前言">前言</h2>
 
 <p>一直对Spring的事务管理理解不够透测，并且开发时老是会出现报错后事务未回滚的情况，此次正好有时间整理一下，好好的把Spring的事务管理的实现与事务回滚弄清楚。以下内容设计到的参考资料有：</p>
 
@@ -185,6 +185,7 @@
 
 <ul>
   <li>异常的继承结构：Error和RuntimeException及其子类成为未检查异常（unchecked），其它异常成为已检查异常（checked）。</li>
+  <li><img src="/img/images/spring/05/01-spring-interface.png" alt="01-spring-interface" /></li>
   <li><img src="/img/images/spring/05/02-exception.png" alt="02-exception" /></li>
 </ul>
 
@@ -199,7 +200,7 @@
   <li>基于 Aspectj AOP 配置事务</li>
 </ol>
 
-<p>总结：</p>
+<p>【总结】</p>
 
 <ul>
   <li><code class="highlighter-rouge">编程式事务</code>管理使用 <strong>TransactionTemplate</strong> 或者直接使用底层的 <code class="highlighter-rouge">PlatformTransactionManager</code>。对与编程式事务管理，Spring 推荐使用 <strong>TransactionTemplate</strong>。</li>
@@ -207,7 +208,7 @@
   <li>显然声明式事务管理要优于编程式事务管理，这正是 Spring 提倡的非侵入式的开发方式。声明式事务管理使业务代码不受污染，一个普通的 POJO 对象，只需要加上注解就可以获取完全的事务支持。和编程式事务管理相比，声明式事务唯一的不足地方是，后者的最细粒度只能作用到方法级别，无法做到像编程式事务那样可以作用到代码块级别。但是即使有这样的需求，也存在很多变通的方法，比如，可以将需要进行事务管理的代码块独立为方法等等。</li>
 </ul>
 
-<p>##二、<code class="highlighter-rouge">Spring事务实现具体</code></p>
+<h2 id="二spring事务实现具体">二、<code class="highlighter-rouge">Spring事务实现具体</code></h2>
 
 <h4 id="21-环境搭建">2.1 环境搭建</h4>
 
@@ -264,7 +265,7 @@
   <li>
     <p>准备数据库表和实体类</p>
 
-    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Account</span> <span class="kd">implements</span> <span class="nc">Serializable</span> <span class="o">{</span>
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Product</span> <span class="kd">implements</span> <span class="nc">Serializable</span> <span class="o">{</span>
    
     <span class="kd">private</span> <span class="nc">String</span> <span class="n">id</span><span class="o">;</span> <span class="c1">// 主键</span>
     <span class="err">……</span>
@@ -274,7 +275,7 @@
   <li>
     <p>编写业务层接口和实现类</p>
 
-    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">IAccountService</span> <span class="o">{</span>
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">ProductService</span> <span class="o">{</span>
 	<span class="kt">void</span> <span class="nf">transfer</span><span class="o">();</span> <span class="c1">//增删改 </span>
 <span class="o">}</span>
 </code></pre></div>    </div>
