@@ -1,4 +1,4 @@
-I"�=<blockquote>
+I"5><blockquote>
   <p>“你去爬山被告知的第一件事，就是别去看顶峰。而是专注于在爬的路，一步一个脚印地，耐心攀爬，如果你不断看山顶，就会泄气。   –黑泽明 ”</p>
 </blockquote>
 
@@ -115,7 +115,7 @@
 
 <h3 id="12-github-pages">1.2 GitHub Pages</h3>
 
-<p>####1.2.1 GitHub Pages介绍</p>
+<h4 id="121-github-pages介绍">1.2.1 GitHub Pages介绍</h4>
 
 <p>GitHub Pages是依托于Github仓库的展示你或者你的项目的静态网站。</p>
 
@@ -149,7 +149,7 @@
   </li>
 </ol>
 
-<p>###1.3 github pages整合 jekyll</p>
+<h3 id="13-github-pages整合-jekyll">1.3 github pages整合 jekyll</h3>
 
 <h4 id="131-整合部署">1.3.1 整合部署</h4>
 
@@ -190,7 +190,7 @@
 └── index.html # 也可以是带 front matter 的 'index.md' 文件
 </code></pre>
 
-<p>####2.1.2 每个文件的功能</p>
+<h4 id="212-每个文件的功能">2.1.2 每个文件的功能</h4>
 
 <table>
   <thead>
@@ -253,11 +253,11 @@
 
 <h3 id="22-开始写第一篇博客">2.2 开始写第一篇博客</h3>
 
-<p>####2.2.1 开始搭建</p>
+<h4 id="221-开始搭建">2.2.1 开始搭建</h4>
 
 <p>通用修改 <code class="highlighter-rouge">_config.yml</code>文件来轻松的开始搭建自己的博客:Jekyll官方网站还有很多的参数可以调，具体请参考<a href="http://jekyllcn.com/">官方文档</a>.</p>
 
-<p>####2.2.2 写一篇博文</p>
+<h4 id="222-写一篇博文">2.2.2 写一篇博文</h4>
 
 <p>要发表的文章一般以markdown的格式放在这里<code class="highlighter-rouge">_posts/</code>，你只要看看这篇模板里的文章你就立刻明白该如何设置。</p>
 

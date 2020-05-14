@@ -5,8 +5,8 @@
     <description>Read well,and strive well for those wuh like it.</description>
     <link>http://localhost:4000/</link>
     <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Fri, 08 May 2020 01:11:37 +0800</pubDate>
-    <lastBuildDate>Fri, 08 May 2020 01:11:37 +0800</lastBuildDate>
+    <pubDate>Thu, 14 May 2020 16:52:44 +0800</pubDate>
+    <lastBuildDate>Thu, 14 May 2020 16:52:44 +0800</lastBuildDate>
     <generator>Jekyll v4.0.0</generator>
     
       <item>
@@ -1444,7 +1444,7 @@
 
 &lt;h3 id=&quot;12-github-pages&quot;&gt;1.2 GitHub Pages&lt;/h3&gt;
 
-&lt;p&gt;####1.2.1 GitHub Pages介绍&lt;/p&gt;
+&lt;h4 id=&quot;121-github-pages介绍&quot;&gt;1.2.1 GitHub Pages介绍&lt;/h4&gt;
 
 &lt;p&gt;GitHub Pages是依托于Github仓库的展示你或者你的项目的静态网站。&lt;/p&gt;
 
@@ -1478,7 +1478,7 @@
   &lt;/li&gt;
 &lt;/ol&gt;
 
-&lt;p&gt;###1.3 github pages整合 jekyll&lt;/p&gt;
+&lt;h3 id=&quot;13-github-pages整合-jekyll&quot;&gt;1.3 github pages整合 jekyll&lt;/h3&gt;
 
 &lt;h4 id=&quot;131-整合部署&quot;&gt;1.3.1 整合部署&lt;/h4&gt;
 
@@ -1519,7 +1519,7 @@
 └── index.html # 也可以是带 front matter 的 'index.md' 文件
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;####2.1.2 每个文件的功能&lt;/p&gt;
+&lt;h4 id=&quot;212-每个文件的功能&quot;&gt;2.1.2 每个文件的功能&lt;/h4&gt;
 
 &lt;table&gt;
   &lt;thead&gt;
@@ -1582,11 +1582,11 @@
 
 &lt;h3 id=&quot;22-开始写第一篇博客&quot;&gt;2.2 开始写第一篇博客&lt;/h3&gt;
 
-&lt;p&gt;####2.2.1 开始搭建&lt;/p&gt;
+&lt;h4 id=&quot;221-开始搭建&quot;&gt;2.2.1 开始搭建&lt;/h4&gt;
 
 &lt;p&gt;通用修改 &lt;code class=&quot;highlighter-rouge&quot;&gt;_config.yml&lt;/code&gt;文件来轻松的开始搭建自己的博客:Jekyll官方网站还有很多的参数可以调，具体请参考&lt;a href=&quot;http://jekyllcn.com/&quot;&gt;官方文档&lt;/a&gt;.&lt;/p&gt;
 
-&lt;p&gt;####2.2.2 写一篇博文&lt;/p&gt;
+&lt;h4 id=&quot;222-写一篇博文&quot;&gt;2.2.2 写一篇博文&lt;/h4&gt;
 
 &lt;p&gt;要发表的文章一般以markdown的格式放在这里&lt;code class=&quot;highlighter-rouge&quot;&gt;_posts/&lt;/code&gt;，你只要看看这篇模板里的文章你就立刻明白该如何设置。&lt;/p&gt;
 
