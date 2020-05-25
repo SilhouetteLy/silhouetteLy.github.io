@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Read well,and strive well for those wuh like it.">
+    <meta name="keyword"  content="">
+    <link rel="shortcut icon" href="/img/favicon.ico">
+
+    <title>Lucene初识 - Silhouette's Blog</title>
+
+    <link rel="canonical" href="http://localhost:4000/2020/05/18/lucene/">
+
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/hux-blog.min.css"> 
+    <link rel="stylesheet" href="/css/silhouette.css">
+    <!-- Pygments Github CSS -->
+    <link rel="stylesheet" href="/css/syntax.css">
+
+    <!-- Custom Fonts -->
+    <!-- <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css"> -->
+    <!-- Hux change font-awesome CDN to qiniu -->
+    <link href="http://cdn.staticfile.org/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+    <!--jekyll Search-->
+    <link rel="stylesheet" href="/search/css/cb-search.css">
+    <!-- Hux Delete, sad but pending in China
+    <link href='http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/
+    css'>
+    -->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- ga & ba script hoook -->
+    <script></script>
+</head>
+
+
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="">
+
+    <!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">Silhouette's Blog</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <!-- Known Issue, found by Hux:
+            <nav>'s height woule be hold on by its content.
+            so, when navbar scale out, the <nav> will cover tags.
+            also mask any touch event of tags, unfortunately.
+        -->
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/about/">About</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/tags/">Tags</a>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    $toggle.addEventListener('click', handleMagic)
+    function handleMagic(e){
+        if ($navbar.className.indexOf('in') > 0) {
+        // CLOSE
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        }else{
+        // OPEN
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+</script>
+
+
+    <!-- Image to hack wechat -->
+<!-- <img src="/img/icon_wechat.png" width="0" height="0"> -->
+<!-- <img src="/img/images/Full-text_Search/lucene/00-post-bg.jpg" width="0" height="0"> -->
+
+<!-- Post Header -->
+<style type="text/css">
+    header.intro-header{
+        background-image: url('/img/images/Full-text_Search/lucene/00-post-bg.jpg')
+    }
+</style>
+<header class="intro-header" >
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                        <a class="tag" href="/tags/#全文检索" title="全文检索">全文检索</a>
+                        
+                    </div>
+                    <h1>Lucene初识</h1>
+                    
+                    
+                    <h2 class="subheading">Lucene是一个Java开发的全文检索工具包</h2>
+                    
+                    <span class="meta">Posted by silhouette on May 18, 2020</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+
+    <!-- Post Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+				<h2 id="一全文检索技术">一、<strong>全文检索技术</strong></h2>
+
+<h4 id="11-数据分类">1.1 数据分类</h4>
+
+<ul>
+  <li>
+    <p>我们生活中的数据总体分为两种：<strong>结构化数据</strong>和<strong>非结构化数据</strong>。</p>
+
+    <ul>
+      <li>
+        <p>结构化数据：指具有固定格式或有限长度的数据，如数据库，元数据等。</p>
+      </li>
+      <li>
+        <p>非结构化数据：指不定长或无固定格式的数据，如邮件，word文档等磁盘上的文件</p>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h4 id="12-数据的查询">1.2 数据的查询</h4>
+
+<ul>
+  <li>
+    <p>结构化数据的查询</p>
+
+    <ul>
+      <li>SQL语句，查询结构化数据的方法。简单、速度快</li>
+    </ul>
+  </li>
+  <li>
+    <p>非结构化数据的查询</p>
+
+    <ul>
+      <li>顺序扫描法(Serial Scanning)
+        <ul>
+          <li>所谓顺序扫描，比如要找内容包含某一个字符串的文件，就是一个文档一个文档的看，对与每一个文档，从头看到尾，如果此文档包含此字符串，则此文档为我们要找的文件，接着看下一个文件，知道扫扫描完所有的文件。如利用 windows 的搜索也可以搜索文件内容，只是相当的慢。</li>
+        </ul>
+      </li>
+      <li>全文检索(Full-text Search)
+        <ul>
+          <li>将非结构化数据中的一部分提取出来，重新组织，使其变得有一定结构，然后对此有一定结构的数据进行搜索，从而达到搜索相对较快的目的。这部分从非结构化数据中提取出的然后重新组织的信息，我们称之<code class="highlighter-rouge">索引</code>。</li>
+          <li><strong>这种先建立索引，再对索引进行搜索的过程称之为全文检索(Full-text Search)</strong></li>
+          <li>虽然创建索引的过程也是比较耗时的，但是索引一单创建就可以多次使用，全文检索主要处理的是查询，所以耗时间创建索引是值得的。</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>搜索引擎的原理</p>
+
+    <p><img src="/img/images/Full-text_Search/lucene/00-搜索引擎的原理.png" alt="00-搜索引擎的原理" /></p>
+  </li>
+</ul>
+
+<h4 id="13-全文检索的实现和应用常见">1.3 全文检索的实现和应用常见</h4>
+
+<ul>
+  <li>实现
+    <ul>
+      <li>可以使用 <code class="highlighter-rouge">Lucene</code> 实现全文检索。<code class="highlighter-rouge">Lucene 是Apache 下的一个开放源码的全文引擎工具包</code>。提供了完整的查询引擎和索引引擎，部分文本分析引擎。Lucene 的目的是为软件开发人员提供一个简单易用的工具包，以便在目标系统中实现全文检索的功能。</li>
+      <li><code class="highlighter-rouge">Lucene 是一个高性能、可伸缩的信息搜索(IR)库</code>。它可以为你的应用程序添加索引和 搜索能力。<strong>Lucene 是用 java 实现的</strong>、成熟的开源项目，是著名的 Apache Jakarta 大家庭 的一员，并且基于 Apache 软件许可 [ASF, License]。同样，Lucene 是当前非常流行的、 免费的 Java 信息搜索(IR)库。</li>
+    </ul>
+  </li>
+  <li>应用场景
+    <ul>
+      <li>搜索引擎：百度、360检索、Google等搜索引擎</li>
+      <li>站内搜索：论坛搜索、微博、文章搜索</li>
+      <li>电商搜索：淘宝搜索、京东搜索</li>
+      <li>只要是有搜索的地方就可以使用全文检索技术。</li>
+    </ul>
+  </li>
+  <li>Lucene 与 Solr 的关系
+    <ul>
+      <li>Lucene 是一套实现了全文检索的底层 API，提供对于全文检索的基础支持，而 Solr 是 全文检索引擎的一个实现产品，是一个企业级搜索应用服务器。</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="二lucene-实现全文检索的流程">二、Lucene 实现全文检索的流程</h2>
+
+<h4 id="21-索引和搜索流程图">2.1 索引和搜索流程图</h4>
+
+<p><img src="/img/images/Full-text_Search/lucene/01-索引和搜索流程图.png" alt="01-索引和搜索流程图" /></p>
+
+<ul>
+  <li>绿色表示创建索引过程，对要搜索的原始内容进行索引构建一个索引库，索引创建过程包括：确认原始内容即搜索的内容–&gt;采集文档–&gt;创建文档–&gt;分析文档–&gt;索引文档</li>
+  <li>红色表示搜索过程，从索引库中搜索内容，搜索过程包括：用户通过搜索界面–&gt;创建查询–&gt;执行搜索，从索引库搜索–&gt;渲染搜索结果</li>
+</ul>
+
+<h4 id="22-创建索引">2.2 创建索引</h4>
+
+<ol>
+  <li>获取文档
+    <ul>
+      <li>原始文档：要基于那些数据来进行搜索，那么这些数据就是原始文档。</li>
+      <li>搜索引擎：使用爬虫技术获取原始文档</li>
+      <li>站内搜索：数据库中的数据</li>
+    </ul>
+  </li>
+  <li>构建文档对象
+    <ul>
+      <li>对饮每个原始文档创建一个 Document 对象，每一个文档都有一个唯一的编号，就是文档ID</li>
+      <li>每个Document可以有多个Field(域)，域中保存的就是原始数据。不同的Document可以有不同的Field，同一个Document可以有相同的Field。</li>
+      <li>域对象包含域的名称(Name)和域的值(value)</li>
+    </ul>
+  </li>
+  <li>分析文档
+    <ul>
+      <li>将原始内容穿件为包含域(Field)的文档(Document)，需要再对域中的内容进行分析，分析的过程是经过愿意文档提取单词、将字母转为小谢、去除标点符号、去除停用词等过程生成最终的语汇淡云，可以将语汇单元理解为一个一个的单词(管家词)。</li>
+      <li>每个单词叫做一个Term，不同的域中拆分出来的相同单词是不同的term。term中包含两部分：一部分是文档的域名，另一个是单词的内容。</li>
+    </ul>
+  </li>
+  <li>创建索引
+    <ul>
+      <li>对所有文档分析得出的语汇单元进行索引，索引的目的是为了搜索，卒中要实现只搜索被索引的语汇单元从而找到Document(文档)。</li>
+      <li>创建索引是对语汇单元索引，通过词语着文档，这种索引的结构叫<strong>倒排索引结构</strong></li>
+      <li><strong>倒排索引结构也叫反向索引结构，包括索引和文档两部分，索引即词汇表，它的规模较小，而文档集合较大。</strong></li>
+    </ul>
+  </li>
+</ol>
+
+<h4 id="23-查询索引">2.3 查询索引</h4>
+
+<ol>
+  <li>用户插叙接口
+    <ul>
+      <li>全文检索系统提供用户搜索的界面供用户提交搜索的关键词，搜索完成展示搜索结果。</li>
+    </ul>
+  </li>
+  <li>创建查询
+    <ul>
+      <li>用户输入查询关键字执行搜索之前需要见构建一个查询对象，查询对象中可以指定查询要搜索的 Field 文档域、查询关键字等，查询对象会生成具体的查询语法。</li>
+    </ul>
+  </li>
+  <li>执行查询
+    <ul>
+      <li>根据查询语法在倒排索引词典表中找出对应搜索词的索引，从而找到索引所链接的文档链表。</li>
+    </ul>
+  </li>
+  <li>渲染结果
+    <ul>
+      <li>以一个友好的界面将查询结果展示给用户，用户根据搜索结果找到自己想要的信息，为了帮助用户很快找到自己的结果，提供了很多展示的效果，比如搜索结果中将关键字高亮显示，百度提供的快照等。</li>
+    </ul>
+  </li>
+</ol>
+
+<h2 id="三lucene的使用">三、Lucene的使用</h2>
+
+<h4 id="31-配置开发环境">3.1 配置开发环境</h4>
+
+<ul>
+  <li>
+    <p>Lucene下载</p>
+
+    <ul>
+      <li>Lucene是开发全文检索功能的工具包，从<a href="http://lucene.apache.org/">官方网站</a>下载压缩包，并解压。</li>
+      <li>此处下载的版本是lucene-7.4.0，JDK要求1.8以上。</li>
+    </ul>
+  </li>
+  <li>
+    <p>使用的jar包</p>
+
+    <div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;dependencies&gt;</span>
+        <span class="c">&lt;!-- https://mvnrepository.com/artifact/org.apache.lucene/lucene-core --&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.lucene<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>lucene-core<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>7.4.0<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>org.apache.lucene<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>lucene-analyzers-common<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>7.4.0<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>commons-io<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>commons-io<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>2.2<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+  			<span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>junit<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>junit<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>4.12<span class="nt">&lt;/version&gt;</span>
+            <span class="nt">&lt;scope&gt;</span>test<span class="nt">&lt;/scope&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+    <span class="nt">&lt;/dependencies&gt;</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h4 id="32-创建索引">3.2 创建索引</h4>
+
+<ol>
+  <li>
+    <p>实现步骤</p>
+
+    <ol>
+      <li>创建一个 Director 对象，指定索引库保存的位置</li>
+      <li>基于Directory对象创建一个IndexWriter对象</li>
+      <li>读取磁盘上的文件，对应每个文件创建一个文档对象</li>
+      <li>向文档对象中添加域</li>
+      <li>把文档对象写入索引库中</li>
+      <li>关闭indexWriter对象</li>
+    </ol>
+  </li>
+  <li>
+    <p>代码实现</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">createIndex</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">IOException</span> <span class="o">{</span>
+    <span class="c1">// 1. 创建一个 Director 对象，指定索引库保存的位置,可以是磁盘，也可以是内存</span>
+    <span class="c1">//Directory directory = new RAMDirectory();//保存到内存中（虽然速度快，但是占内存，用的比较少）</span>
+    <span class="c1">//Directory directory = FSDirectory.open(new File("D:\\temp\\index").toPath());</span>
+    <span class="nc">Directory</span> <span class="n">directory</span> <span class="o">=</span> 
+      			<span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"/Users/silhouette/Downloads/temp"</span><span class="o">).</span><span class="na">toPath</span><span class="o">());</span>
+    <span class="c1">//2. 基于Directory对象创建一个IndexWriter对象</span>
+    <span class="nc">IndexWriterConfig</span> <span class="n">config</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexWriterConfig</span><span class="o">();</span>
+    <span class="nc">IndexWriter</span> <span class="n">indexWriter</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexWriter</span><span class="o">(</span><span class="n">directory</span><span class="o">,</span><span class="n">config</span><span class="o">);</span>
+    <span class="c1">//3. 读取磁盘上的文件，对应每个文件创建一个文档对象</span>
+    <span class="c1">//File dir = new File("D:\\temp\\searchsource");//原始文档的路径</span>
+     <span class="nc">File</span> <span class="n">dir</span> <span class="o">=</span> <span class="k">new</span> 
+       		<span class="nc">File</span><span class="o">(</span><span class="s">"/Users/silhouette/code/my-project/springsecurity/src/main/resources"</span><span class="o">);</span>
+     <span class="nc">File</span><span class="o">[]</span> <span class="n">files</span> <span class="o">=</span> <span class="n">dir</span><span class="o">.</span><span class="na">listFiles</span><span class="o">();</span>
+     <span class="k">for</span> <span class="o">(</span><span class="nc">File</span> <span class="n">file</span> <span class="o">:</span> <span class="n">files</span><span class="o">){</span>
+         <span class="nc">String</span> <span class="n">fileName</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="na">getName</span><span class="o">();</span> <span class="c1">//文件名</span>
+         <span class="nc">String</span> <span class="n">fileContent</span> <span class="o">=</span> <span class="nc">FileUtils</span><span class="o">.</span><span class="na">readFileToString</span><span class="o">(</span><span class="n">file</span><span class="o">);</span><span class="c1">//文件内容</span>
+         <span class="nc">String</span> <span class="n">filePath</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="na">getPath</span><span class="o">();</span><span class="c1">//文件路径</span>
+         <span class="kt">long</span> <span class="n">fileSize</span> <span class="o">=</span> <span class="nc">FileUtils</span><span class="o">.</span><span class="na">sizeOf</span><span class="o">(</span><span class="n">file</span><span class="o">);</span><span class="c1">//文件的大小</span>
+         <span class="c1">//创建文件名域Field （域的名称、域的内容、是否存储）</span>
+         <span class="nc">Field</span> <span class="n">fileNameField</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">TextField</span><span class="o">(</span><span class="s">"fileName"</span><span class="o">,</span><span class="n">fileName</span><span class="o">,</span><span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">);</span>
+         <span class="nc">Field</span> <span class="n">fileContentField</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">TextField</span><span class="o">(</span><span class="s">"fileContent"</span><span class="o">,</span><span class="n">fileContent</span><span class="o">,</span><span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">);</span>
+         <span class="nc">Field</span> <span class="n">filePathField</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">TextField</span><span class="o">(</span><span class="s">"filePath"</span><span class="o">,</span><span class="n">filePath</span><span class="o">,</span><span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">);</span>
+         <span class="nc">Field</span> <span class="n">fileSizeField</span> <span class="o">=</span> <span class="k">new</span> 
+           					<span class="nc">TextField</span><span class="o">(</span><span class="s">"fileSize"</span><span class="o">,</span><span class="nc">String</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">fileSize</span><span class="o">),</span><span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">);</span>
+         <span class="c1">//4.创建document对象</span>
+         <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Document</span><span class="o">();</span>
+         <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">fileNameField</span><span class="o">);</span>
+         <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">fileContentField</span><span class="o">);</span>
+         <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">filePathField</span><span class="o">);</span>
+         <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">fileSizeField</span><span class="o">);</span>
+         <span class="c1">//5.创建索引，并写入索引库</span>
+         <span class="n">indexWriter</span><span class="o">.</span><span class="na">addDocument</span><span class="o">(</span><span class="n">document</span><span class="o">);</span>
+     <span class="o">}</span>
+    <span class="c1">//6. 关闭indexWriter对象</span>
+    <span class="n">indexWriter</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>使用 Luke 工具查看索引文件</p>
+
+    <p><img src="/img/images/Full-text_Search/lucene/02-使用 Luke 工具查看索引文件.png" alt="02-使用 Luke 工具查看索引文件" /></p>
+
+    <p>我们使用的luke的版本是luke-7.4.0，跟lucene的版本对应的。可以打开7.4.0版本的lucene创建的索引库。需要注意的是此版本的Luke是jdk9编译的，所以要想运行此工具还需要jdk9才可以。</p>
+  </li>
+</ol>
+
+<h4 id="33-查询索引">3.3 查询索引</h4>
+
+<ol>
+  <li>
+    <p>实现步骤</p>
+
+    <ol>
+      <li>创建一个Directory对象，指向索引库的位置</li>
+      <li>创建一个IndexReader对象，需要指定Directory对象</li>
+      <li>创建一个IndexSearcher对象，需要指定IndexReader对象</li>
+      <li>创建一个TermQuery对象，需要指定查询的域和查询的关键字</li>
+      <li>执行查询，得到一个TopDocus对象</li>
+      <li>取查询结果的总记录数</li>
+      <li>取文档列表</li>
+      <li>打印文档中内容</li>
+      <li>关闭IndexReader对象</li>
+    </ol>
+  </li>
+  <li>
+    <p>代码实现</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">searchIndex</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+  <span class="c1">//1. 创建一个Directory对象，指向索引库的位置</span>
+  <span class="c1">//Directory directory = FSDirectory.open(new File("D:\\temp\\index").toPath());</span>
+  <span class="nc">Directory</span> <span class="n">directory</span> <span class="o">=</span> <span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="k">new</span> 
+                              <span class="nc">File</span><span class="o">(</span><span class="s">"/Users/silhouette/Downloads/temp"</span><span class="o">).</span><span class="na">toPath</span><span class="o">());</span>
+  <span class="c1">//2. 创建一个IndexReader对象，需要指定Directory对象</span>
+  <span class="nc">IndexReader</span> <span class="n">indexReader</span> <span class="o">=</span> <span class="nc">DirectoryReader</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="n">directory</span><span class="o">);</span>
+  <span class="c1">//3. 创建一个IndexSearcher对象，需要指定IndexReader对象</span>
+  <span class="nc">IndexSearcher</span> <span class="n">indexSearcher</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexSearcher</span><span class="o">(</span><span class="n">indexReader</span><span class="o">);</span>
+  <span class="c1">//4. 创建一个TermQuery对象，需要指定查询的域和查询的关键字</span>
+  <span class="nc">Query</span> <span class="n">query</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">TermQuery</span><span class="o">(</span><span class="k">new</span> <span class="nc">Term</span><span class="o">(</span><span class="s">"fileContent"</span><span class="o">,</span><span class="s">"silhouette"</span><span class="o">));</span>
+  <span class="c1">//5. 执行查询，得到一个TopDocus对象</span>
+  <span class="c1">//第一个参数是查询对象，第二个参数是查询结果返回的最大值</span>
+  <span class="nc">TopDocs</span> <span class="n">topDocs</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">search</span><span class="o">(</span><span class="n">query</span><span class="o">,</span><span class="mi">10</span><span class="o">);</span>
+  <span class="c1">//查询结果的总条数</span>
+  <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"查询结果的总条数："</span><span class="o">+</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">totalHits</span><span class="o">);</span>
+  <span class="c1">//6. 取查询结果的总记录数</span>
+  <span class="k">for</span> <span class="o">(</span><span class="nc">ScoreDoc</span> <span class="n">scoreDoc</span> <span class="o">:</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">scoreDocs</span><span class="o">){</span>
+    <span class="c1">//scoreDoc.doc属性就是document对象的id</span>
+    <span class="c1">//根据document的id找到document对象</span>
+    <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span><span class="n">indexSearcher</span><span class="o">.</span><span class="na">doc</span><span class="o">(</span><span class="n">scoreDoc</span><span class="o">.</span><span class="na">doc</span><span class="o">);</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileName"</span><span class="o">));</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileContent"</span><span class="o">));</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"filePath"</span><span class="o">));</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileSize"</span><span class="o">));</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"-------------------------"</span><span class="o">);</span>
+   
+  <span class="o">}</span>
+  <span class="c1">//9. 关闭IndexReader对象</span>
+  <span class="n">indexReader</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<h2 id="四分析器">四、分析器</h2>
+
+<h4 id="41-分析器的分词效果">4.1 分析器的分词效果</h4>
+
+<p>查看<code class="highlighter-rouge">IndexWriterConfig</code>源码可知，默认使用的是标准分词器<code class="highlighter-rouge">StandardAnalyzer</code>。</p>
+
+<ul>
+  <li>
+    <p>查看分析器分分析效果</p>
+
+    <ul>
+      <li>使用Analyzer对象的tokenStream方法返回一个TokenStream对象，词对象中包含了最终分词效果</li>
+    </ul>
+  </li>
+  <li>
+    <p>实现步骤</p>
+
+    <ol>
+      <li>
+        <p>创建一个Analyzer对象，StanderAnalyzer对象</p>
+      </li>
+      <li>
+        <p>使用分析器对象的tokenStream方法获得一个TokenStream对象</p>
+      </li>
+      <li>
+        <p>向TokenStream对象中设置一个引用，相当于一个指针</p>
+      </li>
+      <li>
+        <p>调用TokenStream对象中的rest方法，如果不调用抛异常</p>
+      </li>
+      <li>
+        <p>使用while循环遍历TokenStream对象</p>
+      </li>
+      <li>
+        <p>关闭TokenStream对象</p>
+      </li>
+    </ol>
+  </li>
+  <li>
+    <p>代码实现</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testTokenStream</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">IOException</span> <span class="o">{</span>
+  <span class="c1">//1.创建一个Analyzer对象，StanderAnalyzer对象</span>
+  <span class="nc">Analyzer</span> <span class="n">analyzer</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">StandardAnalyzer</span><span class="o">();</span>
+  <span class="c1">//2.使用分析器对象的tokenStream方法获得一个TokenStream对象</span>
+  <span class="c1">//第一个参数：域名，可以随便给一个,第二个参数：要分析的文本内容</span>
+  <span class="nc">TokenStream</span> <span class="n">tokenStream</span> <span class="o">=</span> <span class="n">analyzer</span><span class="o">.</span><span class="na">tokenStream</span><span class="o">(</span><span class="s">"test"</span><span class="o">,</span><span class="s">"The Spring Framework provides"</span><span class="o">+</span>
+                          <span class="s">"a comprehensive programming and configuration model."</span><span class="o">);</span>
+  <span class="c1">//TokenStream tokenStream = analyzer.tokenStream("",</span>
+  <span class="c1">//													"查看IndexWriterConfig的源码可知，默认采用标准分析器进行分词解析");</span>
+  <span class="c1">//3.向TokenStream对象中设置一个引用，相当于一个指针</span>
+  <span class="nc">CharTermAttribute</span> <span class="n">charTermAttribute</span> <span class="o">=</span> 
+    												<span class="n">tokenStream</span><span class="o">.</span><span class="na">addAttribute</span><span class="o">(</span><span class="nc">CharTermAttribute</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+  <span class="c1">//添加一个偏移量的引用，记录了关键词的开始位置以及结束位置</span>
+  <span class="nc">OffsetAttribute</span> <span class="n">offsetAttribute</span> <span class="o">=</span> <span class="n">tokenStream</span><span class="o">.</span><span class="na">addAttribute</span><span class="o">(</span><span class="nc">OffsetAttribute</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+  <span class="c1">//4.调用TokenStream对象中的rest方法，如果不调用抛异常</span>
+  <span class="c1">//将指针调整到列表的头部</span>
+  <span class="n">tokenStream</span><span class="o">.</span><span class="na">reset</span><span class="o">();</span>
+  <span class="c1">//5.使用while循环遍历TokenStream对象</span>
+  <span class="k">while</span><span class="o">(</span><span class="n">tokenStream</span><span class="o">.</span><span class="na">incrementToken</span><span class="o">())</span> <span class="o">{</span>
+    <span class="c1">//关键词的起始位置</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"start-&gt;"</span> <span class="o">+</span> <span class="n">offsetAttribute</span><span class="o">.</span><span class="na">startOffset</span><span class="o">());</span>
+    <span class="c1">//取关键词</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">charTermAttribute</span><span class="o">);</span>
+    <span class="c1">//结束位置</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"end-&gt;"</span> <span class="o">+</span> <span class="n">offsetAttribute</span><span class="o">.</span><span class="na">endOffset</span><span class="o">());</span>
+  <span class="o">}</span>
+  <span class="c1">//6.关闭TokenStream对象</span>
+  <span class="n">tokenStream</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+
+    <blockquote>
+      <p>Tips：当分析英文时，会对单词进行解析；但是分析中文时，解析的竟然是一个字一个字的解析</p>
+    </blockquote>
+  </li>
+</ul>
+
+<h4 id="42-中文分析器">4.2 中文分析器</h4>
+
+<ul>
+  <li>
+    <p>StandardAnalyzer：就是按照中文一个字一个字地进行分词。</p>
+  </li>
+  <li>
+    <p>SmartChineseAnalyzer：对中文支持较好，但扩展性差，扩展词库，禁用词库和同义词库等不好处理</p>
+  </li>
+  <li>
+    <p><code class="highlighter-rouge">IKAnalyzer</code></p>
+
+    <ul>
+      <li>
+        <p>使用方法：</p>
+
+        <ul>
+          <li>
+            <p>把jar包添加到工程中</p>
+          </li>
+          <li>
+            <p>把配置文件和扩展词典和停用词词典添加到classpath下</p>
+
+            <blockquote>
+              <p>注意：hotword.dic和ext_stopword.dic文件的格式为UTF-8，注意是无BOM 的UTF-8 编码。也就是说禁止使用windows记事本编辑扩展词典文件</p>
+            </blockquote>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <p>代码实现</p>
+
+        <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testIKAnalyzer</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">IOException</span> <span class="o">{</span>
+    <span class="c1">//创建一个Analyzer对象，StanderAnalyzer对象</span>
+    <span class="nc">Analyzer</span> <span class="n">analyzer</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IKAnalyzer</span><span class="o">();</span>
+    <span class="c1">//使用分析器对象的tokenStream方法获得一个TokenStream对象</span>
+    <span class="c1">//第一个参数：域名，可以随便给一个,第二个参数：要分析的文本内容</span>
+    <span class="nc">TokenStream</span> <span class="n">tokenStream</span> <span class="o">=</span> <span class="n">analyzer</span><span class="o">.</span><span class="na">tokenStream</span><span class="o">(</span><span class="s">""</span><span class="o">,</span> <span class="s">"The Spring Framework “+ 
+                                                   "</span><span class="n">陌生人</span> <span class="n">provides</span> <span class="n">a</span> <span class="n">comprehensive</span> <span class="n">programming</span> <span class="o">.</span><span class="err">"</span><span class="o">);</span>
+    <span class="c1">//向TokenStream对象中设置一个引用，相当于一个指针</span>
+    <span class="nc">CharTermAttribute</span> <span class="n">charTermAttribute</span> <span class="o">=</span> 
+      <span class="n">tokenStream</span><span class="o">.</span><span class="na">addAttribute</span><span class="o">(</span><span class="nc">CharTermAttribute</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+    <span class="c1">//将指针调整到列表的头部</span>
+    <span class="n">tokenStream</span><span class="o">.</span><span class="na">reset</span><span class="o">();</span>
+    <span class="c1">//5.使用while循环遍历TokenStream对象</span>
+    <span class="k">while</span><span class="o">(</span><span class="n">tokenStream</span><span class="o">.</span><span class="na">incrementToken</span><span class="o">())</span> <span class="o">{</span>
+      <span class="c1">//取关键词</span>
+      <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">charTermAttribute</span><span class="o">);</span>
+    <span class="o">}</span>
+    <span class="c1">//关闭TokenStream对象</span>
+    <span class="n">tokenStream</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+
+    <blockquote>
+      <p>Tips：运行上例会报错：“java.lang.AbstractMethodError: org.apache.lucene.analysis.Analyzer.createComponents(Ljava/lang/String;)Lorg/apache/lucene/analysis/Analyzer$TokenStreamComponents;”</p>
+    </blockquote>
+
+    <ul>
+      <li>
+        <p>出错分析：</p>
+
+        <ul>
+          <li>查看IK分词器的源码pom.xml文件可知，IK分词器所依赖的lucene相关组件的版本为4.7.2，而示例使用的Lucene版本是7.4.0。两者版本不同，导致报错。</li>
+          <li>解决方法：从网上找了一个支持lucene 7.4.0的ik分词器的jar包，保持版本一致。然后将该jar包导入到项目中即可</li>
+        </ul>
+      </li>
+      <li>
+        <p>使用IKAnalyzer分析器创建索引</p>
+
+        <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">createIndex</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">IOException</span> <span class="o">{</span>
+  <span class="c1">// 1. 创建一个 Director 对象，指定索引库保存的位置,可以是磁盘，也可以是内存</span>
+  <span class="nc">Directory</span> <span class="n">directory</span> <span class="o">=</span> <span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"D:\\temp\\index"</span><span class="o">).</span><span class="na">toPath</span><span class="o">());</span>
+  <span class="c1">//2. 基于Directory对象创建一个IndexWriter对象</span>
+  <span class="nc">IndexWriterConfig</span> <span class="n">config</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexWriterConfig</span><span class="o">(</span><span class="k">new</span> <span class="nc">IKAnalyzer</span><span class="o">());</span>
+  <span class="nc">IndexWriter</span> <span class="n">indexWriter</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexWriter</span><span class="o">(</span><span class="n">directory</span><span class="o">,</span><span class="n">config</span><span class="o">);</span>
+  <span class="c1">//3. 读取磁盘上的文件，对应每个文件创建一个文档对象</span>
+  <span class="nc">File</span> <span class="n">dir</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"D:\\temp\\searchsource"</span><span class="o">);</span><span class="c1">//原始文档的路径</span>
+  <span class="nc">File</span><span class="o">[]</span> <span class="n">files</span> <span class="o">=</span> <span class="n">dir</span><span class="o">.</span><span class="na">listFiles</span><span class="o">();</span>
+  <span class="k">for</span> <span class="o">(</span><span class="nc">File</span> <span class="n">file</span> <span class="o">:</span> <span class="n">files</span><span class="o">){</span>
+      <span class="nc">String</span> <span class="n">fileName</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="na">getName</span><span class="o">();</span> <span class="c1">//文件名</span>
+      <span class="nc">String</span> <span class="n">fileContent</span> <span class="o">=</span> <span class="nc">FileUtils</span><span class="o">.</span><span class="na">readFileToString</span><span class="o">(</span><span class="n">file</span><span class="o">);</span><span class="c1">//文件内容</span>
+      <span class="nc">String</span> <span class="n">filePath</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="na">getPath</span><span class="o">();</span><span class="c1">//文件路径</span>
+      <span class="kt">long</span> <span class="n">fileSize</span> <span class="o">=</span> <span class="nc">FileUtils</span><span class="o">.</span><span class="na">sizeOf</span><span class="o">(</span><span class="n">file</span><span class="o">);</span><span class="c1">//文件的大小</span>
+      <span class="c1">//创建文件名域Field （域的名称、域的内容、是否存储）</span>
+      <span class="nc">Field</span> <span class="n">fileNameField</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">TextField</span><span class="o">(</span><span class="s">"fileName"</span><span class="o">,</span><span class="n">fileName</span><span class="o">,</span><span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">);</span>
+      <span class="nc">Field</span> <span class="n">fileContentField</span> <span class="o">=</span> <span class="k">new</span> 
+                        <span class="nc">TextField</span><span class="o">(</span><span class="s">"fileContent"</span><span class="o">,</span><span class="n">fileContent</span><span class="o">,</span><span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">);</span>
+      <span class="nc">Field</span> <span class="n">filePathField</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">TextField</span><span class="o">(</span><span class="s">"filePath"</span><span class="o">,</span><span class="n">filePath</span><span class="o">,</span><span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">);</span>
+      <span class="nc">Field</span> <span class="n">fileSizeField</span> <span class="o">=</span> <span class="k">new</span> 
+                  <span class="nc">TextField</span><span class="o">(</span><span class="s">"fileSize"</span><span class="o">,</span><span class="nc">String</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">fileSize</span><span class="o">),</span><span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">);</span>
+      <span class="c1">//4.创建document对象</span>
+      <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Document</span><span class="o">();</span>
+      <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">fileNameField</span><span class="o">);</span>
+      <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">fileContentField</span><span class="o">);</span>
+      <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">filePathField</span><span class="o">);</span>
+      <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">fileSizeField</span><span class="o">);</span>
+      <span class="c1">//5.创建索引，并写入索引库</span>
+      <span class="n">indexWriter</span><span class="o">.</span><span class="na">addDocument</span><span class="o">(</span><span class="n">document</span><span class="o">);</span>
+    <span class="o">}</span>
+  <span class="c1">//6. 关闭indexWriter对象</span>
+  <span class="n">indexWriter</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="五索引库的维护">五、索引库的维护</h2>
+
+<h4 id="51-添加索引库">5.1 添加索引库</h4>
+
+<ul>
+  <li>
+    <p>Field域的属性</p>
+
+    <ul>
+      <li>是否分析：是否对域的内容进行分分词处理。前提是我们要对域的内容进行查询</li>
+      <li>是否索引：将Field分析后的词或者整个Field进行索引，只有索引房可搜索到。</li>
+      <li>是否存储：将Field值存储都文档中，存储在文档中的Field才可以从Document中获取。</li>
+    </ul>
+  </li>
+  <li>
+    <p>常见属性</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Field类</th>
+          <th>数据类型</th>
+          <th>Analyzed  是否分析</th>
+          <th>Indexed  是否索引</th>
+          <th>Stored  是否存储</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>StringField(FieldName,  FieldValue,Store.YES))</td>
+          <td>字符串</td>
+          <td>N</td>
+          <td>Y</td>
+          <td>Y或N</td>
+          <td>这个Field用来构建一个字符串Field，但是不会进行分析，会将整个串存储在索引中，比如(订单号,姓名等)  是否存储在文档中用Store.YES或Store.NO决定</td>
+        </tr>
+        <tr>
+          <td>LongPoint(String name, long… point)</td>
+          <td>Long型</td>
+          <td>Y</td>
+          <td>Y</td>
+          <td>N</td>
+          <td>可以使用LongPoint、IntPoint等类型存储数值类型的数据。让数值类型可以进行索引。但是不能存储数据，如果想存储数据还需要使用StoredField。</td>
+        </tr>
+        <tr>
+          <td>StoredField(FieldName, FieldValue)</td>
+          <td>重载方法，支持多种类型</td>
+          <td>N</td>
+          <td>N</td>
+          <td>Y</td>
+          <td>这个Field用来构建不同类型Field  不分析，不索引，但要Field存储在文档中</td>
+        </tr>
+        <tr>
+          <td>TextField(FieldName, FieldValue, Store.NO)  或  TextField(FieldName, reader)</td>
+          <td>字符串  或  流</td>
+          <td>Y</td>
+          <td>Y</td>
+          <td>Y或N</td>
+          <td>如果是一个Reader, lucene猜测内容比较多,会采用Unstored的策略.</td>
+        </tr>
+      </tbody>
+    </table>
+  </li>
+  <li>
+    <p>添加文档代码实现</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">addDocument</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+    <span class="c1">//索引库存放路径</span>
+    <span class="nc">Directory</span> <span class="n">directory</span> <span class="o">=</span> <span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"D:\\temp\\index"</span><span class="o">).</span><span class="na">toPath</span><span class="o">());</span>
+    <span class="nc">IndexWriterConfig</span> <span class="n">config</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexWriterConfig</span><span class="o">(</span><span class="k">new</span> <span class="nc">IKAnalyzer</span><span class="o">());</span>
+    <span class="c1">//创建一个indexwriter对象</span>
+    <span class="nc">IndexWriter</span> <span class="n">indexWriter</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexWriter</span><span class="o">(</span><span class="n">directory</span><span class="o">,</span> <span class="n">config</span><span class="o">);</span>
+    <span class="c1">//创建一个Document对象</span>
+    <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Document</span><span class="o">();</span>
+    <span class="c1">//向document对象中添加域。</span>
+    <span class="c1">//不同的document可以有不同的域，同一个document可以有相同的域。</span>
+    <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="nc">TextField</span><span class="o">(</span><span class="s">"filename"</span><span class="o">,</span> <span class="s">"新添加的文档"</span><span class="o">,</span> <span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">));</span>
+    <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="nc">TextField</span><span class="o">(</span><span class="s">"content"</span><span class="o">,</span> <span class="s">"新添加的文档的内容"</span><span class="o">,</span> <span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">NO</span><span class="o">));</span>
+    <span class="c1">//LongPoint创建索引</span>
+    <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="nc">LongPoint</span><span class="o">(</span><span class="s">"size"</span><span class="o">,</span> <span class="mi">1000</span><span class="n">l</span><span class="o">));</span>
+    <span class="c1">//StoreField存储数据</span>
+    <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="nc">StoredField</span><span class="o">(</span><span class="s">"size"</span><span class="o">,</span> <span class="mi">1000</span><span class="n">l</span><span class="o">));</span>
+    <span class="c1">//不需要创建索引的就使用StoreField存储</span>
+    <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="nc">StoredField</span><span class="o">(</span><span class="s">"path"</span><span class="o">,</span> <span class="s">"d:/temp/1.txt"</span><span class="o">));</span>
+    <span class="c1">//添加文档到索引库</span>
+    <span class="n">indexWriter</span><span class="o">.</span><span class="na">addDocument</span><span class="o">(</span><span class="n">document</span><span class="o">);</span>
+    <span class="c1">//关闭indexwriter</span>
+    <span class="n">indexWriter</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h4 id="52-删除索引库">5.2 删除索引库</h4>
+
+<ul>
+  <li>
+    <p>删除全部索引</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">deleteAllIndex</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+		<span class="nc">IndexWriter</span> <span class="n">indexWriter</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexWriter</span><span class="o">(</span><span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span>
+      						<span class="k">new</span> <span class="nf">File</span><span class="o">(</span><span class="s">"D:\\temp\\index"</span><span class="o">).</span><span class="na">toPath</span><span class="o">()),</span>
+                 <span class="k">new</span> <span class="nf">IndexWriterConfig</span><span class="o">(</span><span class="k">new</span> <span class="nc">IKAnalyzer</span><span class="o">()));</span>
+		<span class="c1">//删除全部索引</span>
+		<span class="n">indexWriter</span><span class="o">.</span><span class="na">deleteAll</span><span class="o">();</span>
+		<span class="c1">//关闭indexwriter</span>
+		<span class="n">indexWriter</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+
+    <blockquote>
+      <p>注意：将索引目录的索引信息全部删除，直接彻底删除，无法恢复。</p>
+    </blockquote>
+  </li>
+  <li>
+    <p>指定查询条件删除</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">deleteIndexByQuery</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+		<span class="nc">IndexWriter</span> <span class="n">indexWriter</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexWriter</span><span class="o">(</span><span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span>
+      						     <span class="k">new</span> <span class="nf">File</span><span class="o">(</span><span class="s">"D:\\temp\\index"</span><span class="o">).</span><span class="na">toPath</span><span class="o">()),</span>
+                       <span class="k">new</span> <span class="nf">IndexWriterConfig</span><span class="o">(</span><span class="k">new</span> <span class="nc">IKAnalyzer</span><span class="o">()));</span>
+		<span class="c1">//创建一个查询条件</span>
+		<span class="nc">Query</span> <span class="n">query</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">TermQuery</span><span class="o">(</span><span class="k">new</span> <span class="nc">Term</span><span class="o">(</span><span class="s">"filename"</span><span class="o">,</span> <span class="s">"apache"</span><span class="o">));</span>
+		<span class="c1">//根据查询条件删除</span>
+		<span class="n">indexWriter</span><span class="o">.</span><span class="na">deleteDocuments</span><span class="o">(</span><span class="n">query</span><span class="o">);</span>
+		<span class="c1">//关闭indexwriter</span>
+		<span class="n">indexWriter</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h4 id="53-修改索引库">5.3 修改索引库</h4>
+
+<ul>
+  <li>
+    <p>修改索引库的原理就是<code class="highlighter-rouge">先删除后添加</code></p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">updateDocument</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+      <span class="nc">IndexWriter</span> <span class="n">indexWriter</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexWriter</span><span class="o">(</span><span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span>
+      						     <span class="k">new</span> <span class="nf">File</span><span class="o">(</span><span class="s">"D:\\temp\\index"</span><span class="o">).</span><span class="na">toPath</span><span class="o">()),</span>
+                       <span class="k">new</span> <span class="nf">IndexWriterConfig</span><span class="o">(</span><span class="k">new</span> <span class="nc">IKAnalyzer</span><span class="o">()));</span>
+  		<span class="c1">//创建一个新的文档对象</span>
+        <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Document</span><span class="o">();</span>
+        <span class="c1">//向文档对象中添加域</span>
+        <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="nc">TextField</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="s">"更新之后的文档"</span><span class="o">,</span> <span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">));</span>
+        <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="nc">TextField</span><span class="o">(</span><span class="s">"name1"</span><span class="o">,</span> <span class="s">"更新之后的文档2"</span><span class="o">,</span> <span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">));</span>
+        <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="nc">TextField</span><span class="o">(</span><span class="s">"name2"</span><span class="o">,</span> <span class="s">"更新之后的文档3"</span><span class="o">,</span> <span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">));</span>
+        <span class="c1">//更新操作</span>
+        <span class="n">indexWriter</span><span class="o">.</span><span class="na">updateDocument</span><span class="o">(</span><span class="k">new</span> <span class="nc">Term</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="s">"spring"</span><span class="o">),</span> <span class="n">document</span><span class="o">);</span>
+        <span class="c1">//关闭索引库</span>
+        <span class="n">indexWriter</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="六lunece索引库查询">六、Lunece索引库查询</h2>
+
+<h4 id="61-lucene索引查询">6.1 Lucene索引查询</h4>
+
+<p>对要搜索的信息创建Query查询对象，Lucene会根据Query查询对象生成最终的查询语法，类似关系数据库SQL语法一样 Lucene也有自己的查询语法，比如：“name:lucene”表示查询Field的name为“lucene”的文档对象。</p>
+
+<p>可通过两种方法创建查询对象：</p>
+
+<ul>
+  <li>使用Lucene提供Query子类<code class="highlighter-rouge">TermQuery</code></li>
+  <li>使用QueryParse解析查询表达式</li>
+</ul>
+
+<h4 id="62-termquery">6.2 <strong>TermQuery</strong></h4>
+
+<ul>
+  <li>
+    <p>TermQuery：根据关键字进行查询，需要指定要查询的域及腰查询的关键词</p>
+  </li>
+  <li>
+    <p>代码演示</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testTermQuery</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+    <span class="nc">Directory</span> <span class="n">directory</span> <span class="o">=</span> <span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"D:\\temp\\index"</span><span class="o">).</span><span class="na">toPath</span><span class="o">());</span>
+    <span class="nc">IndexReader</span> <span class="n">indexReader</span> <span class="o">=</span> <span class="nc">DirectoryReader</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="n">directory</span><span class="o">);</span>
+    <span class="nc">IndexSearcher</span> <span class="n">indexSearcher</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexSearcher</span><span class="o">(</span><span class="n">indexReader</span><span class="o">);</span>
+      
+    <span class="c1">//创建查询对象</span>
+    <span class="nc">Query</span> <span class="n">query</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">TermQuery</span><span class="o">(</span><span class="k">new</span> <span class="nc">Term</span><span class="o">(</span><span class="s">"content"</span><span class="o">,</span> <span class="s">"lucene"</span><span class="o">));</span>
+    <span class="c1">//执行查询</span>
+    <span class="nc">TopDocs</span> <span class="n">topDocs</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">search</span><span class="o">(</span><span class="n">query</span><span class="o">,</span> <span class="mi">10</span><span class="o">);</span>
+    <span class="c1">//共查询到的document个数</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"查询结果总数量："</span> <span class="o">+</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">totalHits</span><span class="o">);</span>
+    <span class="c1">//遍历查询结果</span>
+    <span class="k">for</span> <span class="o">(</span><span class="nc">ScoreDoc</span> <span class="n">scoreDoc</span> <span class="o">:</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">scoreDocs</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">doc</span><span class="o">(</span><span class="n">scoreDoc</span><span class="o">.</span><span class="na">doc</span><span class="o">);</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"fileName:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileName"</span><span class="o">));</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"filePath:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"filePath"</span><span class="o">));</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"fileSize:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileSize"</span><span class="o">));</span>
+        <span class="c1">//System.out.println("fileContent:" + document.get("fileContent"));</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"-----------------华丽的的分割线"</span><span class="o">);</span>
+    <span class="o">}</span>
+    <span class="c1">//关闭indexreader</span>
+    <span class="n">indexSearcher</span><span class="o">.</span><span class="na">getIndexReader</span><span class="o">().</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h4 id="63-wildcardquery">6.3 WildcardQuery</h4>
+
+<ul>
+  <li>
+    <p>WildcardQuery 可以进行测试通配符查询，<code class="highlighter-rouge">?</code>可以代表任意一个字符，<code class="highlighter-rouge">*</code>可以任意多个任意字符。</p>
+  </li>
+  <li>
+    <p>代码演示</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testWildcardQuery</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+ 		<span class="nc">Directory</span> <span class="n">directory</span> <span class="o">=</span> <span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"/Users/silhouette/Downloads/temp"</span><span class="o">).</span><span class="na">toPath</span><span class="o">());</span>
+    <span class="nc">IndexReader</span> <span class="n">indexReader</span> <span class="o">=</span> <span class="nc">DirectoryReader</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="n">directory</span><span class="o">);</span>
+    <span class="nc">IndexSearcher</span> <span class="n">indexSearcher</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexSearcher</span><span class="o">(</span><span class="n">indexReader</span><span class="o">);</span>
+  
+    <span class="c1">// 创建查询对象</span>
+    <span class="nc">Query</span> <span class="n">query</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">WildcardQuery</span><span class="o">(</span><span class="k">new</span> <span class="nc">Term</span><span class="o">(</span><span class="s">"title"</span><span class="o">,</span> <span class="s">"*智能*"</span><span class="o">));</span>
+    <span class="c1">// 搜索数据</span>
+    <span class="nc">TopDocs</span> <span class="n">topDocs</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">search</span><span class="o">(</span><span class="n">query</span><span class="o">,</span> <span class="mi">10</span><span class="o">);</span>
+    <span class="c1">// 获取总条数</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"本次搜索共找到"</span> <span class="o">+</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">totalHits</span> <span class="o">+</span> <span class="s">"条数据"</span><span class="o">);</span>
+    <span class="c1">//遍历查询结果</span>
+    <span class="k">for</span> <span class="o">(</span><span class="nc">ScoreDoc</span> <span class="n">scoreDoc</span> <span class="o">:</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">scoreDocs</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">doc</span><span class="o">(</span><span class="n">scoreDoc</span><span class="o">.</span><span class="na">doc</span><span class="o">);</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"fileName:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileName"</span><span class="o">));</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"filePath:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"filePath"</span><span class="o">));</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"fileSize:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileSize"</span><span class="o">));</span>
+        <span class="c1">//System.out.println("fileContent:" + document.get("fileContent"));</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"-----------------华丽的的分割线"</span><span class="o">);</span>
+    <span class="o">}</span>
+    <span class="c1">//关闭indexreader</span>
+    <span class="n">indexSearcher</span><span class="o">.</span><span class="na">getIndexReader</span><span class="o">().</span><span class="na">close</span><span class="o">();</span> 
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h4 id="64-rangequery">6.4 RangeQuery</h4>
+
+<ul>
+  <li>
+    <p>RangeQuery：数值范围查询</p>
+  </li>
+  <li>
+    <p>NumericRangeQuery：根据数值范围查询（可以用来对非 String 类型的 ID 进行精确 的查找）</p>
+  </li>
+  <li>
+    <p>代码演示</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testRangeQuery</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+      <span class="nc">Directory</span> <span class="n">directory</span> <span class="o">=</span> <span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"/Users/silhouette/Downloads/temp"</span><span class="o">).</span><span class="na">toPath</span><span class="o">());</span>
+    	<span class="nc">IndexReader</span> <span class="n">indexReader</span> <span class="o">=</span> <span class="nc">DirectoryReader</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="n">directory</span><span class="o">);</span>
+    	<span class="nc">IndexSearcher</span> <span class="n">indexSearcher</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexSearcher</span><span class="o">(</span><span class="n">indexReader</span><span class="o">);</span>
+    
+  		<span class="c1">//创建一个Query对象</span>
+      <span class="nc">Query</span> <span class="n">query</span> <span class="o">=</span> <span class="nc">LongPoint</span><span class="o">.</span><span class="na">newRangeQuery</span><span class="o">(</span><span class="s">"size"</span><span class="o">,</span> <span class="mi">0</span><span class="n">l</span><span class="o">,</span> <span class="mi">100</span><span class="n">l</span><span class="o">);</span>
+  		<span class="c1">//参数：域名、最小值、最大值、是否包含最小值、知否包含最大值</span>
+  		<span class="c1">//Query query = NumericRangeQuery.newIntRange("size", 1, 2,true, true);</span>
+ 			<span class="c1">//执行查询</span>
+      <span class="nc">TopDocs</span> <span class="n">topDocs</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">search</span><span class="o">(</span><span class="n">query</span><span class="o">,</span> <span class="mi">10</span><span class="o">);</span>
+      <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"总记录数："</span> <span class="o">+</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">totalHits</span><span class="o">);</span>
+      <span class="nc">ScoreDoc</span><span class="o">[]</span> <span class="n">scoreDocs</span> <span class="o">=</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">scoreDocs</span><span class="o">;</span>
+      <span class="k">for</span> <span class="o">(</span><span class="nc">ScoreDoc</span> <span class="nl">doc:</span><span class="n">scoreDocs</span><span class="o">){</span>
+          <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">doc</span><span class="o">(</span><span class="n">scoreDoc</span><span class="o">.</span><span class="na">doc</span><span class="o">);</span>
+          <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"fileName:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileName"</span><span class="o">));</span>
+          <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"filePath:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"filePath"</span><span class="o">));</span>
+          <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"fileSize:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileSize"</span><span class="o">));</span>
+          <span class="c1">//System.out.println("fileContent:" + document.get("fileContent"));</span>
+          <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"-----------------华丽的的分割线"</span><span class="o">);</span>
+      <span class="o">}</span>
+      <span class="n">indexReader</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>      
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<blockquote>
+  <p>Tips：4.x.x版本时还可以使用<strong>NumericRangeQuery</strong>，但是我使用7.4.0版本时，发现找不到了，已被替换了，可以使用<strong>LongPoint.newRangeQuery()</strong>进行范围查询</p>
+</blockquote>
+
+<h4 id="65-queryparser">6.5 QueryParser</h4>
+
+<ul>
+  <li>
+    <p>QueryParser：可以对要查询的内容进行分词，然后基于分词的结果进行查询。</p>
+
+    <ul>
+      <li>
+        <p>需要添加QueryParser依赖的Jar包</p>
+
+        <div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">&lt;!-- https://mvnrepository.com/artifact/org.apache.lucene/lucene-queryparser --&gt;</span>
+<span class="nt">&lt;dependency&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>org.apache.lucene<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>lucene-queryparser<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>7.4.0<span class="nt">&lt;/version&gt;</span>
+<span class="nt">&lt;/dependency&gt;</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>代码演示</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testQueryParser</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+  		<span class="nc">Directory</span> <span class="n">directory</span> <span class="o">=</span> <span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"/Users/silhouette/Downloads/temp"</span><span class="o">).</span><span class="na">toPath</span><span class="o">());</span>
+    	<span class="nc">IndexReader</span> <span class="n">indexReader</span> <span class="o">=</span> <span class="nc">DirectoryReader</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="n">directory</span><span class="o">);</span>
+    	<span class="nc">IndexSearcher</span> <span class="n">indexSearcher</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexSearcher</span><span class="o">(</span><span class="n">indexReader</span><span class="o">);</span>
+    
+  		<span class="c1">//创建queryparser对象。第一个参数默认搜索的域，第二个参数就是分析器对象</span>
+  		<span class="nc">QueryParser</span> <span class="n">queryParser</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">QueryParser</span><span class="o">(</span><span class="s">"content"</span><span class="o">,</span> <span class="k">new</span> <span class="nc">IKAnalyzer</span><span class="o">());</span>
+  		<span class="c1">//使用QueryPaser对象创建一个Query对象</span>
+      <span class="nc">Query</span> <span class="n">query</span> <span class="o">=</span> <span class="n">queryParser</span><span class="o">.</span><span class="na">parse</span><span class="o">(</span><span class="s">"lucene是一个Java开发的全文检索工具包"</span><span class="o">);</span>
+			<span class="c1">//执行查询</span>
+      <span class="nc">TopDocs</span> <span class="n">topDocs</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">search</span><span class="o">(</span><span class="n">query</span><span class="o">,</span> <span class="mi">10</span><span class="o">);</span>
+      <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"总记录数："</span> <span class="o">+</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">totalHits</span><span class="o">);</span>
+      <span class="nc">ScoreDoc</span><span class="o">[]</span> <span class="n">scoreDocs</span> <span class="o">=</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">scoreDocs</span><span class="o">;</span>
+      <span class="k">for</span> <span class="o">(</span><span class="nc">ScoreDoc</span> <span class="nl">doc:</span><span class="n">scoreDocs</span><span class="o">){</span>
+          <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">doc</span><span class="o">(</span><span class="n">scoreDoc</span><span class="o">.</span><span class="na">doc</span><span class="o">);</span>
+          <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"fileName:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileName"</span><span class="o">));</span>
+          <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"filePath:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"filePath"</span><span class="o">));</span>
+          <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"fileSize:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileSize"</span><span class="o">));</span>
+          <span class="c1">//System.out.println("fileContent:" + document.get("fileContent"));</span>
+          <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"-----------------华丽的的分割线"</span><span class="o">);</span>
+      <span class="o">}</span>
+      <span class="n">indexReader</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>      
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h4 id="66-组合查询">6.6 组合查询</h4>
+
+<ul>
+  <li>
+    <p>布尔查询本身没有查询条件，可以把其它查询通过逻辑运算进行组合， Occur.MUST 表示交集，Occur.SHOULD 表示并集，Occur.MUST_NOT 表示非。</p>
+  </li>
+  <li>
+    <p>代码演示</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testGroupQuery</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+ 		 <span class="nc">Directory</span> <span class="n">directory</span> <span class="o">=</span> <span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"/Users/silhouette/Downloads/temp"</span><span class="o">).</span><span class="na">toPath</span><span class="o">());</span>
+     <span class="nc">IndexReader</span> <span class="n">indexReader</span> <span class="o">=</span> <span class="nc">DirectoryReader</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="n">directory</span><span class="o">);</span>
+     <span class="nc">IndexSearcher</span> <span class="n">indexSearcher</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexSearcher</span><span class="o">(</span><span class="n">indexReader</span><span class="o">);</span>
+    		
+  	 <span class="c1">// 创建查询对象</span>
+		 <span class="nc">Query</span> <span class="n">query1</span> <span class="o">=</span> <span class="nc">NumericRangeQuery</span><span class="o">.</span><span class="na">newIntRange</span><span class="o">(</span><span class="s">"id"</span><span class="o">,</span> <span class="mi">1</span><span class="o">,</span> <span class="mi">3</span><span class="o">,</span><span class="kc">true</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+		 <span class="nc">Query</span> <span class="n">query2</span> <span class="o">=</span> <span class="nc">NumericRangeQuery</span><span class="o">.</span><span class="na">newIntRange</span><span class="o">(</span><span class="s">"id"</span><span class="o">,</span> <span class="mi">2</span><span class="o">,</span> <span class="mi">4</span><span class="o">,</span><span class="kc">true</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+		 <span class="c1">// 创建布尔查询的对象</span>
+		 <span class="nc">BooleanQuery</span> <span class="n">query</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">BooleanQuery</span><span class="o">();</span>
+		 <span class="c1">// 组合其它查询</span>
+		 <span class="n">query</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">query1</span><span class="o">,</span> <span class="nc">Occur</span><span class="o">.</span><span class="na">MUST_NOT</span><span class="o">);</span>
+		 <span class="n">query</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">query2</span><span class="o">,</span> <span class="nc">Occur</span><span class="o">.</span><span class="na">SHOULD</span><span class="o">);</span>
+    
+  	 <span class="c1">//执行查询</span>
+      <span class="nc">TopDocs</span> <span class="n">topDocs</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">search</span><span class="o">(</span><span class="n">query</span><span class="o">,</span> <span class="mi">10</span><span class="o">);</span>
+      <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"总记录数："</span> <span class="o">+</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">totalHits</span><span class="o">);</span>
+      <span class="nc">ScoreDoc</span><span class="o">[]</span> <span class="n">scoreDocs</span> <span class="o">=</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">scoreDocs</span><span class="o">;</span>
+      <span class="k">for</span> <span class="o">(</span><span class="nc">ScoreDoc</span> <span class="nl">doc:</span><span class="n">scoreDocs</span><span class="o">){</span>
+          <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">doc</span><span class="o">(</span><span class="n">scoreDoc</span><span class="o">.</span><span class="na">doc</span><span class="o">);</span>
+          <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"fileName:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileName"</span><span class="o">));</span>
+          <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"filePath:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"filePath"</span><span class="o">));</span>
+          <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"fileSize:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileSize"</span><span class="o">));</span>
+          <span class="c1">//System.out.println("fileContent:" + document.get("fileContent"));</span>
+          <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"-----------------华丽的的分割线"</span><span class="o">);</span>
+      <span class="o">}</span>
+      <span class="n">indexReader</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="七lucene的高级使用">七、Lucene的高级使用</h2>
+
+<h4 id="71-高亮显示">7.1 高亮显示</h4>
+
+<ul>
+  <li>
+    <p>高亮显示的主要实现原理在于，为所有的关键字添加一个HTML标签，通过改标签来设置高亮。</p>
+  </li>
+  <li>
+    <p>代码演示</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testHighLighter</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+  	<span class="nc">Directory</span> <span class="n">directory</span> <span class="o">=</span> <span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"/Users/silhouette/Downloads/temp4"</span><span class="o">));</span>
+    <span class="nc">IndexReader</span> <span class="n">indexReader</span> <span class="o">=</span> <span class="nc">DirectoryReader</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="n">directory</span><span class="o">);</span>
+    <span class="nc">IndexSearcher</span> <span class="n">indexSearcher</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexSearcher</span><span class="o">(</span><span class="n">indexReader</span><span class="o">);</span>
+  
+    <span class="c1">//创建queryparser对象。第一个参数默认搜索的域，第二个参数就是分析器对象</span>
+    <span class="nc">QueryParser</span> <span class="n">queryParser</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">QueryParser</span><span class="o">(</span><span class="nc">Version</span><span class="o">.</span><span class="na">LUCENE_47</span><span class="o">,</span><span class="s">"fileContent"</span><span class="o">,</span> <span class="k">new</span> <span class="nc">IKAnalyzer</span><span class="o">());</span>
+    <span class="c1">//使用QueryPaser对象创建一个Query对象</span>
+    <span class="nc">Query</span> <span class="n">query</span> <span class="o">=</span> <span class="n">queryParser</span><span class="o">.</span><span class="na">parse</span><span class="o">(</span><span class="s">"freemarker"</span><span class="o">);</span>
+  
+    <span class="c1">// 格式化器</span>
+    <span class="nc">Formatter</span> <span class="n">formatter</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SimpleHTMLFormatter</span><span class="o">(</span><span class="s">"&lt;em&gt;"</span><span class="o">,</span><span class="s">"&lt;/em&gt;"</span><span class="o">);</span>
+    <span class="nc">Scorer</span> <span class="n">scorer</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">QueryScorer</span><span class="o">(</span><span class="n">query</span><span class="o">);</span>
+    <span class="c1">// 准备高亮工具</span>
+    <span class="nc">Highlighter</span> <span class="n">highlighter</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Highlighter</span><span class="o">(</span><span class="n">formatter</span><span class="o">,</span><span class="n">scorer</span><span class="o">);</span>
+  
+    <span class="c1">//执行查询</span>
+    <span class="nc">TopDocs</span> <span class="n">topDocs</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">search</span><span class="o">(</span><span class="n">query</span><span class="o">,</span> <span class="mi">10</span><span class="o">);</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"总记录数："</span> <span class="o">+</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">totalHits</span><span class="o">);</span>
+    <span class="nc">ScoreDoc</span><span class="o">[]</span> <span class="n">scoreDocs</span> <span class="o">=</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">scoreDocs</span><span class="o">;</span>
+    <span class="k">for</span> <span class="o">(</span><span class="nc">ScoreDoc</span> <span class="nl">doc:</span><span class="n">scoreDocs</span><span class="o">){</span>
+      <span class="c1">//取文档id</span>
+      <span class="kt">int</span> <span class="n">docId</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="na">doc</span><span class="o">;</span>
+      <span class="c1">//根据id取文档对象</span>
+      <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">doc</span><span class="o">(</span><span class="n">docId</span><span class="o">);</span>
+      <span class="c1">// 处理查询结果</span>
+      <span class="nc">String</span> <span class="n">fileContent</span> <span class="o">=</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileContent"</span><span class="o">);</span>
+      <span class="nc">String</span> <span class="n">result</span> <span class="o">=</span> <span class="n">highlighter</span><span class="o">.</span><span class="na">getBestFragment</span><span class="o">(</span><span class="k">new</span> <span class="nc">IKAnalyzer</span><span class="o">(),</span> <span class="s">"fileContent"</span><span class="o">,</span> <span class="n">fileContent</span><span class="o">);</span>
+      <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"result:"</span> <span class="o">+</span> <span class="n">result</span><span class="o">);</span>
+      <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"-----------------华丽的的分割线"</span><span class="o">);</span>
+    <span class="o">}</span>
+    <span class="n">indexReader</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+
+    <blockquote>
+      <p>Tips：运行结果可知，所有的搜索关键字都被<em>标签包裹起来了。注意，此次使用的Lucene的版本是<code class="highlighter-rouge">4.7.2</code>，因为我在<code class="highlighter-rouge">7.4.0</code>未找到关于高亮的接口或实现类。</em></p>
+    </blockquote>
+  </li>
+</ul>
+
+<h4 id="72-排序">7.2 排序</h4>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testQuerySort</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+  	<span class="nc">Directory</span> <span class="n">directory</span> <span class="o">=</span> <span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"/Users/silhouette/Downloads/temp7"</span><span class="o">).</span><span class="na">toPath</span><span class="o">());</span>
+    <span class="nc">IndexReader</span> <span class="n">indexReader</span> <span class="o">=</span> <span class="nc">DirectoryReader</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="n">directory</span><span class="o">);</span>
+    <span class="nc">IndexSearcher</span> <span class="n">indexSearcher</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexSearcher</span><span class="o">(</span><span class="n">indexReader</span><span class="o">);</span>
+
+    <span class="c1">//创建queryparser对象。第一个参数默认搜索的域，第二个参数就是分析器对象</span>
+    <span class="nc">QueryParser</span> <span class="n">queryParser</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">QueryParser</span><span class="o">(</span><span class="s">"fileContent"</span><span class="o">,</span> <span class="k">new</span> <span class="nc">IKAnalyzer</span><span class="o">());</span>
+    <span class="c1">//使用QueryPaser对象创建一个Query对象</span>
+    <span class="nc">Query</span> <span class="n">query</span> <span class="o">=</span> <span class="n">queryParser</span><span class="o">.</span><span class="na">parse</span><span class="o">(</span><span class="s">"freemarker"</span><span class="o">);</span>
+
+    <span class="c1">// 创建排序对象，false升序，true降序</span>
+    <span class="nc">Sort</span> <span class="n">sort</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Sort</span><span class="o">(</span><span class="k">new</span> <span class="nc">SortField</span><span class="o">(</span><span class="s">"id"</span><span class="o">,</span> <span class="nc">SortField</span><span class="o">.</span><span class="na">Type</span><span class="o">.</span><span class="na">INT</span><span class="o">,</span> <span class="kc">true</span><span class="o">));</span>
+    <span class="c1">//执行查询</span>
+    <span class="nc">TopDocs</span> <span class="n">topDocs</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">search</span><span class="o">(</span><span class="n">query</span><span class="o">,</span> <span class="mi">10</span><span class="o">,</span><span class="n">sort</span><span class="o">);</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"总记录数："</span> <span class="o">+</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">totalHits</span><span class="o">);</span>
+    <span class="nc">ScoreDoc</span><span class="o">[]</span> <span class="n">scoreDocs</span> <span class="o">=</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">scoreDocs</span><span class="o">;</span>
+    <span class="k">for</span> <span class="o">(</span><span class="nc">ScoreDoc</span> <span class="nl">doc:</span><span class="n">scoreDocs</span><span class="o">){</span>
+        <span class="c1">//取文档id</span>
+        <span class="kt">int</span> <span class="n">docId</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="na">doc</span><span class="o">;</span>
+        <span class="c1">//根据id取文档对象</span>
+        <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">doc</span><span class="o">(</span><span class="n">docId</span><span class="o">);</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"fileName:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileName"</span><span class="o">));</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"filePath:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"filePath"</span><span class="o">));</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"fileSize:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileSize"</span><span class="o">));</span>
+        <span class="c1">//System.out.println("fileContent:" + document.get("fileContent"));</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"-----------------华丽的的分割线"</span><span class="o">);</span>
+    <span class="o">}</span>
+    <span class="n">indexReader</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<h4 id="73-分页">7.3 分页</h4>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testPageQuery</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span><span class="o">{</span>
+    <span class="c1">//每页条数</span>
+    <span class="kt">int</span> <span class="n">pageSize</span> <span class="o">=</span> <span class="mi">2</span><span class="o">;</span>
+    <span class="c1">//当前页码</span>
+    <span class="kt">int</span> <span class="n">pageNum</span> <span class="o">=</span> <span class="mi">3</span><span class="o">;</span>
+    <span class="c1">//当前页的起始条数</span>
+    <span class="kt">int</span> <span class="n">start</span> <span class="o">=</span> <span class="o">(</span><span class="n">pageNum</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span> <span class="o">*</span> <span class="n">pageSize</span><span class="o">;</span>
+    <span class="c1">//当前页的结束条数</span>
+    <span class="kt">int</span> <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">pageSize</span><span class="o">;</span>
+
+    <span class="nc">Directory</span> <span class="n">directory</span> <span class="o">=</span> <span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"/Users/silhouette/Downloads/temp7"</span><span class="o">).</span><span class="na">toPath</span><span class="o">());</span>
+    <span class="nc">IndexReader</span> <span class="n">indexReader</span> <span class="o">=</span> <span class="nc">DirectoryReader</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="n">directory</span><span class="o">);</span>
+    <span class="nc">IndexSearcher</span> <span class="n">indexSearcher</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexSearcher</span><span class="o">(</span><span class="n">indexReader</span><span class="o">);</span>
+
+    <span class="c1">//创建queryparser对象。第一个参数默认搜索的域，第二个参数就是分析器对象</span>
+    <span class="nc">QueryParser</span> <span class="n">queryParser</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">QueryParser</span><span class="o">(</span><span class="s">"fileContent"</span><span class="o">,</span> <span class="k">new</span> <span class="nc">IKAnalyzer</span><span class="o">());</span>
+    <span class="c1">//使用QueryPaser对象创建一个Query对象</span>
+    <span class="nc">Query</span> <span class="n">query</span> <span class="o">=</span> <span class="n">queryParser</span><span class="o">.</span><span class="na">parse</span><span class="o">(</span><span class="s">"freemarker"</span><span class="o">);</span>
+
+    <span class="c1">// 创建排序对象，false升序，true降序</span>
+    <span class="nc">Sort</span> <span class="n">sort</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Sort</span><span class="o">(</span><span class="k">new</span> <span class="nc">SortField</span><span class="o">(</span><span class="s">"id"</span><span class="o">,</span> <span class="nc">SortField</span><span class="o">.</span><span class="na">Type</span><span class="o">.</span><span class="na">INT</span><span class="o">,</span> <span class="kc">false</span><span class="o">));</span>
+    <span class="c1">//执行查询</span>
+    <span class="nc">TopDocs</span> <span class="n">topDocs</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">search</span><span class="o">(</span><span class="n">query</span><span class="o">,</span> <span class="n">end</span><span class="o">,</span><span class="n">sort</span><span class="o">);</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"总记录数："</span> <span class="o">+</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">totalHits</span><span class="o">);</span>
+    <span class="nc">ScoreDoc</span><span class="o">[]</span> <span class="n">scoreDocs</span> <span class="o">=</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">scoreDocs</span><span class="o">;</span>
+    <span class="c1">//避免数据越界 </span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">end</span> <span class="o">&gt;</span> <span class="n">scoreDocs</span><span class="o">.</span><span class="na">length</span><span class="o">){</span>
+      <span class="n">end</span> <span class="o">=</span> <span class="n">scoreDocs</span><span class="o">.</span><span class="na">length</span><span class="o">;</span>
+    <span class="o">}</span>
+    <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">start</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">end</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
+      <span class="nc">ScoreDoc</span> <span class="n">scoreDoc</span> <span class="o">=</span> <span class="n">scoreDocs</span><span class="o">[</span><span class="n">i</span><span class="o">];</span>
+      <span class="c1">//获取文档对象</span>
+      <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">doc</span><span class="o">(</span><span class="n">scoreDoc</span><span class="o">.</span><span class="na">doc</span><span class="o">);</span>
+      <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"fileName:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileName"</span><span class="o">));</span>
+      <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"filePath:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"filePath"</span><span class="o">));</span>
+      <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"fileSize:"</span> <span class="o">+</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"fileSize"</span><span class="o">));</span>
+      <span class="c1">//System.out.println("fileContent:" + document.get("fileContent"));</span>
+      <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"-----------------华丽的的分割线"</span><span class="o">);</span>
+    <span class="o">}</span>
+    <span class="n">indexReader</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<h4 id="74-加权算法">7.4 加权算法</h4>
+
+<p>Lucene会对搜索结果进行打分，用来表示文档数据与词条关联性的强弱，得分越高，表示查询的匹配度就越高，排名就越靠前。</p>
+
+<ul>
+  <li>
+    <p>创建索引</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">CreateWeightIndex</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+  	<span class="c1">// 创建一个 Director 对象，指定索引库保存的位置,可以是磁盘，也可以是内存</span>
+    <span class="nc">Directory</span> <span class="n">directory</span> <span class="o">=</span> <span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"/Users/silhouette/Downloads/temp4"</span><span class="o">));</span>
+    <span class="c1">// 基于Directory对象创建一个IndexWriter对象</span>
+    <span class="nc">IndexWriterConfig</span> <span class="n">indexWriterConfig</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexWriterConfig</span><span class="o">(</span><span class="nc">Version</span><span class="o">.</span><span class="na">LUCENE_47</span><span class="o">,</span><span class="k">new</span> <span class="nc">IKAnalyzer</span><span class="o">());</span>
+    <span class="nc">IndexWriter</span> <span class="n">indexWriter</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexWriter</span><span class="o">(</span><span class="n">directory</span><span class="o">,</span><span class="n">indexWriterConfig</span><span class="o">);</span>
+  
+    <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Document</span><span class="o">();</span>
+    <span class="nc">Random</span> <span class="n">random</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Random</span><span class="o">();</span>
+    <span class="c1">// 创建Filed需要制定字段的名称，字段的内容，还需要设置是否需要存储</span>
+    <span class="nc">IndexableField</span> <span class="n">fieldId</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IntField</span><span class="o">(</span><span class="s">"id"</span><span class="o">,</span> <span class="mi">10</span><span class="o">,</span> <span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">);</span>
+    <span class="nc">TextField</span> <span class="n">fieldTitle</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">TextField</span><span class="o">(</span><span class="s">"title"</span><span class="o">,</span> <span class="s">"title "</span> <span class="o">+</span> <span class="mi">10</span><span class="o">,</span> <span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">);</span>
+  	<span class="c1">//设置加权</span>
+    <span class="n">fieldTitle</span><span class="o">.</span><span class="na">setBoost</span><span class="o">(</span><span class="mf">2.0f</span><span class="o">);</span>
+    <span class="nc">IndexableField</span> <span class="n">fieldHits</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IntField</span><span class="o">(</span><span class="s">"hits"</span><span class="o">,</span> <span class="n">random</span><span class="o">.</span><span class="na">nextInt</span><span class="o">(</span><span class="mi">1000</span><span class="o">),</span> <span class="nc">Field</span><span class="o">.</span><span class="na">Store</span><span class="o">.</span><span class="na">YES</span><span class="o">);</span>
+  
+    <span class="c1">// 向document中添加字段</span>
+    <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">fieldTitle</span><span class="o">);</span>
+    <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">fieldId</span><span class="o">);</span>
+    <span class="n">document</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">fieldHits</span><span class="o">);</span>
+    <span class="c1">//添加文档</span>
+    <span class="n">indexWriter</span><span class="o">.</span><span class="na">addDocument</span><span class="o">(</span><span class="n">document</span><span class="o">);</span>
+    <span class="c1">//提交</span>
+    <span class="n">indexWriter</span><span class="o">.</span><span class="na">commit</span><span class="o">();</span>
+    <span class="n">indexWriter</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>查询索引</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/**
+*	修改权重并重新创建索引，然后再进行查询索引查看效果
+*/</span>
+<span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">QueryWeightIndex</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+  	<span class="nc">Directory</span> <span class="n">directory</span> <span class="o">=</span> <span class="nc">FSDirectory</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"/Users/silhouette/Downloads/temp4"</span><span class="o">));</span>
+    <span class="nc">IndexReader</span> <span class="n">indexReader</span> <span class="o">=</span> <span class="nc">DirectoryReader</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="n">directory</span><span class="o">);</span>
+    <span class="nc">IndexSearcher</span> <span class="n">indexSearcher</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">IndexSearcher</span><span class="o">(</span><span class="n">indexReader</span><span class="o">);</span>
+  
+    <span class="c1">//创建queryparser对象。第一个参数默认搜索的域，第二个参数就是分析器对象</span>
+    <span class="nc">QueryParser</span> <span class="n">queryParser</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">QueryParser</span><span class="o">(</span><span class="nc">Version</span><span class="o">.</span><span class="na">LUCENE_47</span><span class="o">,</span><span class="s">"title"</span><span class="o">,</span> <span class="k">new</span> <span class="nc">IKAnalyzer</span><span class="o">());</span>
+    <span class="c1">//使用QueryPaser对象创建一个Query对象</span>
+    <span class="nc">Query</span> <span class="n">query</span> <span class="o">=</span> <span class="n">queryParser</span><span class="o">.</span><span class="na">parse</span><span class="o">(</span><span class="s">"title"</span><span class="o">);</span>
+  
+    <span class="nc">TopDocs</span> <span class="n">topDocs</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">search</span><span class="o">(</span><span class="n">query</span><span class="o">,</span> <span class="mi">20</span><span class="o">);</span>
+  
+    <span class="nc">ScoreDoc</span><span class="o">[]</span> <span class="n">scoreDocs</span> <span class="o">=</span> <span class="n">topDocs</span><span class="o">.</span><span class="na">scoreDocs</span><span class="o">;</span>
+  
+    <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">scoreDocs</span><span class="o">.</span><span class="na">length</span> <span class="o">;</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
+      <span class="nc">Document</span> <span class="n">document</span> <span class="o">=</span> <span class="n">indexSearcher</span><span class="o">.</span><span class="na">doc</span><span class="o">(</span><span class="n">scoreDocs</span><span class="o">[</span><span class="n">i</span><span class="o">].</span><span class="na">doc</span><span class="o">);</span>
+  
+      <span class="nc">String</span> <span class="n">id</span> <span class="o">=</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"id"</span><span class="o">);</span>
+      <span class="nc">String</span> <span class="n">title</span> <span class="o">=</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"title"</span><span class="o">);</span>
+      <span class="nc">String</span> <span class="n">hits</span> <span class="o">=</span> <span class="n">document</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"hits"</span><span class="o">);</span>
+      <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">id</span> <span class="o">+</span> <span class="s">"："</span> <span class="o">+</span> <span class="n">title</span><span class="o">+</span><span class="s">":"</span><span class="o">+</span><span class="n">hits</span><span class="o">);</span>
+    <span class="o">}</span>
+  
+    <span class="n">indexReader</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<blockquote>
+  <p>Tips：此示例使用的Lucene版本是是<code class="highlighter-rouge">4.7.2</code>，在<code class="highlighter-rouge">7.4.0</code>上未找到加权的相应方法</p>
+</blockquote>
+
+
+
+                <hr>
+
+                
+
+
+                <ul class="pager">
+                    
+                    <li class="previous">
+                        <a href="/2020/05/08/silhouette/" data-toggle="tooltip" data-placement="top" title="Silhouette">&larr; Previous Post</a>
+                    </li>
+                    
+                    
+                    <li class="next">
+                        <a href="/2020/05/24/solr/" data-toggle="tooltip" data-placement="top" title="Solr初识">Next Post &rarr;</a>
+                    </li>
+                    
+                </ul>
+
+
+                
+
+                
+
+            </div>
+
+    <!-- Sidebar Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                <!-- Featured Tags -->
+                
+                <section>
+                    <hr class="hidden-sm hidden-xs">
+                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
+                    <div class="tags">
+        				
+                            
+                				<a href="/tags/#Blog" title="Blog" rel="2">
+                                    Blog
+                                </a>
+                            
+        				
+                            
+        				
+                            
+        				
+                            
+        				
+                            
+                				<a href="/tags/#全文检索" title="全文检索" rel="2">
+                                    全文检索
+                                </a>
+                            
+        				
+        			</div>
+                </section>
+                
+
+                <!-- Friends Blog -->
+                
+                <hr>
+                <h5>FRIENDS</h5>
+                <ul class="list-inline">
+                    
+                        <li><a href="https://mariajiang.github.io/">姜梦原的博客</a></li>
+                    
+                </ul>
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+
+
+
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+<!-- anchor-js, Doc:http://bryanbraun.github.io/anchorjs/ -->
+<script>
+    async("http://cdn.bootcss.com/anchor-js/1.1.1/anchor.min.js",function(){
+        anchors.options = {
+          visible: 'always',
+          placement: 'right',
+          icon: '#'
+        };
+        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
+    })
+</script>
+<style>
+    /* place left on bigger screen */
+    @media all and (min-width: 800px) {
+        .anchorjs-link{
+            position: absolute;
+            left: -0.75em;
+            font-size: 1.1em;
+            margin-top : -0.1em;
+        }
+    }
+</style>
+
+
+
+    <!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                    
+                    
+
+                    <!-- add Weibo, Zhihu by Hux, add target = "_blank" to <a> by Hux -->
+                    
+                    
+
+
+                    
+                    
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright &copy; Silhouette's Blog 2020
+                    <br>
+                    Theme by <a href="https://caojiele.com">caojiele</a> |
+                    <iframe
+                        style="margin-left: 2px; margin-bottom:-5px;"
+                        frameborder="0" scrolling="0" width="100px" height="20px"
+                        src="https://ghbtns.com/github-btn.html?user=huxpro&repo=huxpro.github.io&type=star&count=true" >
+                    </iframe>
+                </p>
+            </div>
+        </div>
+    </div>
+    <!--回到顶部-->
+    <div id="backtop">
+       <a href="#">TOP</a>
+    </div> 
+    <!--搜索框-->
+    <div class="cb-search-tool" style="position: fixed; top: 0px ; bottom: 0px; left: 0px; right:  0px;
+      opacity: 0.95; background-color: #111111; z-index: 9999; display: none;">
+    	<input type="text" class="form-control cb-search-content" id="cb-search-content" style="position: fixed; top: 60px" placeholder="文章标题 日期 >标签" >
+
+    	<div style="position: fixed; top: 16px; right: 16px;">
+        	<img src="/search/img/cb-close.png"  id="cb-close-btn"/>
+    	</div>
+    </div>
+
+    <div style="position: fixed; right: 16px; bottom: 20px;">
+    	<img src="/search/img/cb-search.png"  id="cb-search-btn"  title="双击ctrl试一下"/>
+    </div>
+</footer>
+<!-- jQuery -->
+<script src="/js/jquery.min.js "></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="/js/bootstrap.min.js "></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="/js/hux-blog.min.js "></script>
+<script src="/js/silhouette.js "></script>
+
+<!--jekyll search-->
+<script src="/search/js/bootstrap3-typeahead.min.js"></script>
+<script src="/search/js/cb-search.js"></script>
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+<!-- 
+     Because of the native support for backtick-style fenced code blocks 
+     right within the Markdown is landed in Github Pages, 
+     From V1.6, There is no need for Highlight.js, 
+     so Huxblog drops it officially.
+
+     - https://github.com/blog/2100-github-pages-now-faster-and-simpler-with-jekyll-3-0  
+     - https://help.github.com/articles/creating-and-highlighting-code-blocks/    
+-->
+<!--
+    <script>
+        async("http://cdn.bootcss.com/highlight.js/8.6/highlight.min.js", function(){
+            hljs.initHighlightingOnLoad();
+        })
+    </script>
+    <link href="http://cdn.bootcss.com/highlight.js/8.6/styles/github.min.css" rel="stylesheet">
+-->
+
+
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async("/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+<!--fastClick.js -->
+<script>
+    async("http://cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+<!-- Google Analytics -->
+
+
+
+<!-- Baidu Tongji -->
+
+
+
+
+<!-- Image to hack wechat -->
+<img src="/img/icon_wechat.png" width="0" height="0" />
+<!-- Migrate from head to bottom, no longer block render and still work -->
+
+</body>
+<!-- or without installing anything -->
+<script src="https://unpkg.com/simple-jekyll-search/dest/simple-jekyll-search.min.js"></script>
+</html>

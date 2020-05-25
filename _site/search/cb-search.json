@@ -3,6 +3,22 @@
 	"data" : [
 	 
 	{
+		"title" : "Solr初识 - 全文检索",
+		"url" : "/2020/05/24/solr/"
+	}
+	
+	,
+	
+    
+	{
+		"title" : "Lucene初识 - 全文检索",
+		"url" : "/2020/05/18/lucene/"
+	}
+	
+	,
+	
+    
+	{
 		"title" : "Silhouette - Music",
 		"url" : "/2020/05/08/silhouette/"
 	}
