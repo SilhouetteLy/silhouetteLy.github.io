@@ -1,0 +1,560 @@
+I"Z�<p>## 前言</p>
+
+<p>最近利用空余时间做网盘上收藏好久的一个项目，项目中涉及到图片的上传和下载，使用的是分布式文件系统<code class="highlighter-rouge">FastDFS</code>。所以本篇博客就是记录我个人在虚拟机上搭建<code class="highlighter-rouge">FastDFS</code>与使用过程。</p>
+
+<h2 id="一-fastdfs介绍">一、 FastDFS介绍</h2>
+
+<h3 id="11-fastdfs简介">1.1 FastDFS简介</h3>
+
+<p>FastDFS是用c语言编写的一款开源的分布式文件系统。FastDFS为互联网量身定制，充分考虑了冗余备份、负载均衡、线性扩容等机制，并注重高可用、高性能等指标，使用FastDFS很容易搭建一套高性能的文件服务器集群提供文件上传、下载等服务。</p>
+
+<h3 id="12-fastdfs架构">1.2 FastDFS架构</h3>
+
+<p>FastDFS架构包括 Tracker server和Storage server。客户端请求Tracker server进行文件上传、下载，通过Tracker server调度最终由Storage server完成文件上传和下载。</p>
+
+<p>Tracker server作用是负载均衡和调度，通过Tracker server在文件上传时可以根据一些策略找到Storage server提供文件上传服务。可以将tracker称为追踪服务器或调度服务器。</p>
+
+<p>Storage server作用是文件存储，客户端上传的文件最终存储在Storage服务器上，Storage server没有实现自己的文件系统而是利用操作系统 的文件系统来管理文件。可以将storage称为存储服务器。</p>
+
+<p>如下图：</p>
+
+<p><img src="/img/images/fastDFS/00/01-FastDFS架构.png" /></p>
+
+<h4 id="121-tracker-集群">1.2.1 Tracker 集群</h4>
+
+<p>FastDFS集群中的Tracker server可以有多台，Tracker server之间是相互平等关系同时提供服务，Tracker server不存在单点故障。客户端请求Tracker server采用轮询方式，如果请求的tracker无法提供服务则换另一个tracker。</p>
+
+<h4 id="122-storage集群">1.2.2 Storage集群</h4>
+
+<p>Storage集群采用了分组存储方式。storage集群由一个或多个组构成，集群存储总容量为集群中所有组的存储容量之和。一个组由一台或多台存储服务器组成，组内的Storage server之间是平等关系，不同组的Storage server之间不会相互通信，同组内的Storage server之间会相互连接进行文件同步，从而保证同组内每个storage上的文件完全一致的。一个组的存储容量为该组内存储服务器容量最小的那个，由此可见组内存储服务器的软硬件配置最好是一致的。</p>
+
+<p>采用分组存储方式的好处是灵活、可控性较强。比如上传文件时，可以由客户端直接指定上传到的组也可以由tracker进行调度选择。一个分组的存储服务器访问压力较大时，可以在该组增加存储服务器来扩充服务能力（纵向扩容）。当系统容量不足时，可以增加组来扩充存储容量（横向扩容）。</p>
+
+<h4 id="123-storage状态收集">1.2.3 Storage状态收集</h4>
+
+<p>Storage server会连接集群中所有的Tracker server，定时向他们报告自己的状态，包括磁盘剩余空间、文件同步状况、文件上传下载次数等统计信息。</p>
+
+<h4 id="124-文件上传流程">1.2.4 文件上传流程</h4>
+
+<p><img src="/img/images/fastDFS/00/02-文件上传流程.png" /></p>
+
+<p>客户端上传文件后存储服务器将文件ID返回给客户端，此文件ID用于以后访问该文件的索引信息。文件索引信息包括：组名，虚拟磁盘路径，数据两级目录，文件名。</p>
+
+<p><img src="/img/images/fastDFS/00/03-文件索引信息.png" /></p>
+
+<ul>
+  <li>组名：文件上传后所在的storage组名称，在文件上传成功后有storage服务器返回，需要客户端自行保存。</li>
+  <li>虚拟磁盘路径：storage配置的虚拟路径，与磁盘选项store_path*对应。如果配置了store_path0则是M00，如果配置了store_path1则是M01，以此类推。</li>
+  <li>数据两级目录：storage服务器在每个虚拟磁盘路径下创建的两级目录，用于存储数据文件。</li>
+  <li>文件名：与文件上传时不同。是由存储服务器根据特定信息生成，文件名包含：源存储服务器IP地址、文件创建时间戳、文件大小、随机数和文件拓展名等信息。</li>
+</ul>
+
+<h4 id="125-文件下载流程">1.2.5 文件下载流程</h4>
+
+<p><img src="/img/images/fastDFS/00/04-文件下载流程.png" /></p>
+
+<p>tracker根据请求的文件路径即文件ID 来快速定义文件。比如请求下边的文件：</p>
+
+<p><img src="/img/images/fastDFS/00/03-文件索引信息.png" /></p>
+
+<ol>
+  <li>
+    <p>通过组名tracker能够很快的定位到客户端需要访问的存储服务器组是group1，并选择合适的存储服务器提供客户端访问。</p>
+  </li>
+  <li>
+    <p>存储服务器根据“文件存储虚拟磁盘路径”和“数据文件两级目录”可以很快定位到文件所在目录，并根据文件名找到客户端需要访问的文件。</p>
+  </li>
+</ol>
+
+<h3 id="13-fastdfsnginx实现文件服务器">1.3 FastDFS+Nginx实现文件服务器</h3>
+
+<h4 id="131-架构图">1.3.1 架构图</h4>
+
+<p><img src="/img/images/fastDFS/00/05-架构图.png" /></p>
+
+<h4 id="132-fastdfstracker安装">1.3.2 FastDFS–tracker安装</h4>
+
+<ol>
+  <li>
+    <p>FastDFS 安装环境</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># FastDFS是C语言开发，建议在linux上运行，本教程使用Centos6.4作为安装环境。</span>
+<span class="c"># 装FastDFS需要先将官网下载的源码进行编译，编译依赖gcc环境，如果没有gcc环境，需要安装gcc</span>
+<span class="nv">$ </span>yum <span class="nb">install </span>gcc-c++
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>安装lievent</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># FastDFS依赖libevent库</span>
+<span class="nv">$ </span>yum <span class="nt">-y</span> <span class="nb">install </span>libevent
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>安装 libfastcommon</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># libfastcommon是FastDFS官方提供的，libfastcommon包含了FastDFS运行所需要的一些基础库。</span>
+<span class="nv">$ </span>rz libfastcommonV1.0.7.tar.gz
+<span class="nv">$ </span><span class="nb">cd</span> /home/silhouette
+<span class="nv">$ </span><span class="nb">tar</span> <span class="nt">-zxvf</span> libfastcommonV1.0.7.tar.gz
+<span class="nv">$ </span><span class="nb">cd </span>libfastcommon-1.0.7
+<span class="nv">$ </span>./make.sh
+<span class="nv">$ </span>./make.sh <span class="nb">install</span>
+</code></pre></div>    </div>
+
+    <ul>
+      <li>
+        <p><strong>注意：libfastcommon</strong>安装好后会自动将库文件拷贝至<code class="highlighter-rouge">/usr/lib64</code>下，由于FastDFS程序引用<code class="highlighter-rouge"> usr/lib</code> 目录所以需要将<code class="highlighter-rouge">/usr/lib64</code>下的库文件拷贝至<code class="highlighter-rouge"> /usr/lib </code>下。</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cp</span> /usr/lib64/libfastcommon.so /usr/lib
+<span class="nv">$ </span><span class="nb">cp</span> /usr/lib64/libfastcommon.so /usr/local/lib/
+<span class="nv">$ </span><span class="nb">cp</span> /usr/lib64/libfdfsclient.so /usr/lib
+<span class="nv">$ </span><span class="nb">cp</span> /usr/lib64/libfdfsclient.so /usr/local/lib
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>安装fastdfs-5.05.tar.gz</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>rz FastDFS_v5.05.tar.gz
+<span class="nv">$ </span><span class="nb">tar</span> <span class="nt">-zxvf</span> FastDFS_v5.05.tar.gz
+<span class="nv">$ </span><span class="nb">cd </span>FastDFS
+<span class="nv">$ </span>./make.sh
+<span class="nv">$ </span>./make.sh <span class="nb">install</span>
+<span class="c"># 安装成功将安装目录下的conf下的文件拷贝到/etc/fdfs/下。</span>
+<span class="nv">$ </span><span class="nb">cp</span> /home/silhouette/FastDFS/conf/<span class="k">*</span> /etc/fads
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>配置tracker</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim tracker.conf
+<span class="c">## 修改FastDFS安装路径</span>
+<span class="nv">base_path</span><span class="o">=</span>/home/silhouette/FastDFS
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>启动</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf restart
+<span class="c"># 设置开机自动启动</span>
+<span class="nv">$ </span>vim /etc/rc.d/rc.local
+<span class="c">## 添加启动命令</span>
+/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf restart
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<p><img src="/img/images/fastDFS/00/06-tracker启动.png" /></p>
+
+<h4 id="133-fastdfsstorage安装">1.3.3 FastDFS–storage安装</h4>
+
+<ol>
+  <li>
+    <p>配置 storage</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim storage.conf
+<span class="c"># 修改默认配置</span>
+<span class="nv">base_path</span><span class="o">=</span>/home/silhouette/FastDFS
+<span class="nv">store_path0</span><span class="o">=</span>/home/silhouette/FastDFS/fdfs_storage
+<span class="c">#如果有多个挂载磁盘则定义多个store_path，如下</span>
+<span class="c">#store_path1=.....</span>
+<span class="c">#store_path2=......</span>
+<span class="nv">tracker_server</span><span class="o">=</span>192.168.30.201:22122   <span class="c">#配置tracker服务器:IP</span>
+<span class="c">#如果有多个则配置多个tracker</span>
+<span class="c">#tracker_server=192.168.101.4:22122</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>启动</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>/usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart
+<span class="c"># 设置开机自动启动</span>
+<span class="nv">$ </span>vim /etc/rc.d/rc.local
+<span class="c">## 添加启动命令</span>
+/usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart
+</code></pre></div>    </div>
+
+    <p><img src="/img/images/fastDFS/00/07-storage启动.png" /></p>
+  </li>
+</ol>
+
+<h4 id="134-上传图片测试">1.3.4 上传图片测试</h4>
+
+<p>FastDFS安装成功可通过/usr/bin/fdfs_test测试上传、下载等操作。修改/etc/fdfs/client.conf：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim /etc/fdfs/client.conf
+<span class="c"># 修改默认配置</span>
+<span class="nv">base_path</span><span class="o">=</span>/home/silhouette/FastDFS
+<span class="nv">tracker_server</span><span class="o">=</span>192.168.30.201:22122
+</code></pre></div></div>
+
+<p>使用格式： <code class="highlighter-rouge">/usr/bin/fdfs_test</code>  客户端配置文件地址 <code class="highlighter-rouge">upload</code> 上传文件</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">## 示例：比如将/home下的图片上传到FastDFS中</span>
+<span class="nv">$ </span> /usr/bin/fdfs_test /etc/fdfs/client.conf upload /home/anti-steal.jpg
+<span class="c"># 查看日志输出</span>
+ http://192.168.30.201/group1/M00/00/00/wKgeyV7fLNyAci5dAABdrZgsqUU078.jpg <span class="c">#就是文件的下载路径</span>
+ /home/silhouette/FastDFS/fdfs_storage/data/00/00/wKgeyV7fLNyAci5dAABdrZgsqUU078.jpg#对应storage服务器上的路径 
+</code></pre></div></div>
+
+<blockquote>
+  <p>注意：由于现在还没有和nginx整合无法使用http下载</p>
+</blockquote>
+
+<h3 id="14-fastdfs-和nginx整合">1.4 FastDFS 和nginx整合</h3>
+
+<p>以上内容其实已经完成了<code class="highlighter-rouge">FastDFS</code>的配置，如果此时你用<code class="highlighter-rouge">Java</code>等API 编辑客户端，实际上就完成了文件的上传、同步和下载。但是为什么网上会有人说需要<code class="highlighter-rouge">Nginx</code>呢？其主要原因是因为：我们可以通过配置Nginx 为下载提供<code class="highlighter-rouge">基于http协议的下载等功能</code></p>
+
+<ul>
+  <li>tracker中安装 Nginx，主要是为了提供<strong>http访问的反向代理、负载均衡以及缓存服务</strong></li>
+  <li>storage中安装 Nginx，主要是为了提供<strong>http的访问服务。同时解决group 中 storage 服务器的同步延迟问题</strong></li>
+</ul>
+
+<h4 id="141--在-tracker上安装nginx">1.4.1  在 tracker上安装nginx</h4>
+
+<p>nginx的安装细节参考这里<a href="https://silhouettely.github.io/2020/06/09/nginx00/">传送门</a>。</p>
+
+<p>在每个tracker上安装nginx，的主要目的是做负载均衡及实现高可用。如果只有一台tracker服务器可以不配置nginx。</p>
+
+<h4 id="142-在-storage-上安装nginx">1.4.2 在 Storage 上安装nginx</h4>
+
+<ol>
+  <li>
+    <p>FastDFS-nginx-module</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>rz FastDFS-nginx-module_v1.16.tar.gz
+<span class="nv">$ </span><span class="nb">cd</span> /home/silhouette
+<span class="nv">$ </span><span class="nb">tar</span> <span class="nt">-zxvf</span> FastDFS-nginx-module_v1.16.tar.gz
+<span class="nv">$ </span><span class="nb">cd </span>FastDFS-nginx-module/src
+<span class="nv">$ </span>vim conf
+<span class="c"># 修改config文件将/usr/local/路径改为/usr/</span>
+</code></pre></div>    </div>
+
+    <p><img src="/img/images/fastDFS/00/08-fastdfs-nginx-module配置文件的修改.png" /></p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 将FastDFS-nginx-module/src下的mod_FastDFS.conf拷贝至/etc/fdfs/下</span>
+<span class="nv">$ </span><span class="nb">cp</span> /home/silhouette/fastdfs-nginx-module/src/mod_fastdfs.conf /etc/fdfs/
+<span class="nv">$ </span><span class="nb">cd</span> /etc/fdfs
+<span class="nv">$ </span>vim mod_fastdfs.conf
+<span class="c"># 修改mod_FastDFS.conf的内容：</span>
+<span class="nv">base_path</span><span class="o">=</span>/home/silhouette/FastDFS
+<span class="nv">tracker_server</span><span class="o">=</span>192.168.30.201:22122
+<span class="c">#tracker_server=192.168.101.4:22122（多个tracker配置多行）</span>
+url_have_group_name <span class="o">=</span> <span class="nb">true</span>        <span class="c">#url中包含group名称</span>
+<span class="nv">store_path0</span><span class="o">=</span>/home/silhouette/FastDFS/fdfs_storage    <span class="c">#指定文件存储路径</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Nginx 安装</p>
+
+    <ol>
+      <li>
+        <p>添加FastDFS-nginx-module模块</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cd</span> /home/silhouette/nginx-1.8.0
+<span class="nv">$ </span>./configure <span class="se">\</span>
+<span class="nt">--prefix</span><span class="o">=</span>/usr/local/nginx <span class="se">\</span>
+<span class="nt">--pid-path</span><span class="o">=</span>/var/run/nginx/nginx.pid <span class="se">\</span>
+<span class="nt">--lock-path</span><span class="o">=</span>/var/lock/nginx.lock <span class="se">\</span>
+<span class="nt">--error-log-path</span><span class="o">=</span>/var/log/nginx/error.log <span class="se">\</span>
+<span class="nt">--http-log-path</span><span class="o">=</span>/var/log/nginx/access.log <span class="se">\</span>
+<span class="nt">--with-http_gzip_static_module</span> <span class="se">\</span>
+<span class="nt">--http-client-body-temp-path</span><span class="o">=</span>/var/temp/nginx/client <span class="se">\</span>
+<span class="nt">--http-proxy-temp-path</span><span class="o">=</span>/var/temp/nginx/proxy <span class="se">\</span>
+<span class="nt">--http-fastcgi-temp-path</span><span class="o">=</span>/var/temp/nginx/fastcgi <span class="se">\</span>
+<span class="nt">--http-uwsgi-temp-path</span><span class="o">=</span>/var/temp/nginx/uwsgi <span class="se">\</span>
+<span class="nt">--http-scgi-temp-path</span><span class="o">=</span>/var/temp/nginx/scgi <span class="se">\</span>
+<span class="nt">--add-module</span><span class="o">=</span>/usr/local/fastdfs-nginx-module/src <span class="se">\</span>
+<span class="nt">--add-module</span><span class="o">=</span>/home/silhouette/fastdfs-nginx-module/src
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>重新编译</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>make
+<span class="nv">$ </span>make <span class="nb">install</span>
+</code></pre></div>        </div>
+      </li>
+    </ol>
+  </li>
+  <li>
+    <p>nginx配置文件</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 修改 nginx配置文件，添加server 代码块</span>
+<span class="nv">$ </span><span class="nb">cat </span>nginx.conf
+worker_processes  1<span class="p">;</span>
+   
+events <span class="o">{</span>
+    worker_connections  1024<span class="p">;</span>
+<span class="o">}</span>
+   
+   
+http <span class="o">{</span>
+    include       mime.types<span class="p">;</span>
+    default_type  application/octet-stream<span class="p">;</span>
+   
+    sendfile        on<span class="p">;</span>
+       
+    keepalive_timeout  65<span class="p">;</span>
+   
+    <span class="c">#gzip  on;</span>
+   
+    server <span class="o">{</span>
+        listen       80<span class="p">;</span>
+        server_name  localhost<span class="p">;</span>
+   
+        location / <span class="o">{</span>
+            root   html<span class="p">;</span>
+            index  index.html index.htm<span class="p">;</span>
+        <span class="o">}</span>
+           
+        error_page   500 502 503 504  /50x.html<span class="p">;</span>
+        location <span class="o">=</span> /50x.html <span class="o">{</span>
+            root   html<span class="p">;</span>
+        <span class="o">}</span>
+         
+        <span class="c"># ocation /group1/M00/：group1为nginx 服务FastDFS的分组名称</span>
+        <span class="c"># M00是FastDFS自动生成编号，对应store_path0=/home/silhouette/FastDFS/fdfs_storage</span>
+        <span class="c"># 如果FastDFS定义store_path1，这里就是M01</span>
+        location ~/group1/M00/<span class="o">{</span>
+             root /home/silhouette/FastDFS/fdfs_storage/data<span class="p">;</span>
+             ngx_fastdfs_module<span class="p">;</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>测试</p>
+
+    <ul>
+      <li>
+        <p>上述我们已经给服务器中添加过图片，现在就可以直接通过浏览器来直接访问 storage：</p>
+
+        <pre><code class="language-txt">http://192.168.30.201/group1/M00/00/00/wKgeyV7fLNyAci5dAABdrZgsqUU078.jpg
+</code></pre>
+
+        <p><img src="/img/images/fastDFS/00/09-测试效果图.png" /></p>
+      </li>
+    </ul>
+  </li>
+</ol>
+
+<h4 id="143-图片服务器的迁移安装">1.4.3 图片服务器的迁移安装</h4>
+
+<ol>
+  <li>
+    <p>编辑网络</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 查看当前虚拟机网络，并保持网络畅通</span>
+<span class="nv">$ </span>ip addr
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>编辑文件</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vi /etc/fdfs/storage.conf
+<span class="c"># 修改为当前虚拟机的IP</span>
+<span class="nv">tracker_server</span><span class="o">=</span>192.168.30.201:22122
+   
+<span class="nv">$ </span>vi /usr/local/nginx/conf/nginx.conf
+<span class="c"># 修改为当前虚拟机的IP</span>
+ server<span class="o">{</span>
+        listen            80<span class="p">;</span>
+        server_name      192.168.30.201<span class="p">;</span>
+           
+        location ~/group1/M00/<span class="o">{</span>
+             root /home/silhouette/FastDFS/fdfs_storage/data<span class="p">;</span>
+             ngx_fastdfs_module<span class="p">;</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>编写一键启动的批处理文件</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span> vim start-all.sh
+<span class="c"># 在文件中输入如下命令</span>
+/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf restart
+/usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart
+<span class="nb">cd</span> /usr/local/nginx/sbin
+./nginx
+<span class="nb">cd</span> ~
+   
+<span class="c"># 修改文件权限</span>
+<span class="nb">chmod </span>u+x start-all.sh
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<h3 id="15-java-客户端使用图片服务器">1.5 Java 客户端使用图片服务器</h3>
+
+<ol>
+  <li>
+    <p>添加环境依赖</p>
+
+    <div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="c">&lt;!-- fastDFSClient --&gt;</span>
+<span class="nt">&lt;dependency&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>fastdfs_client<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>fastdfs_client<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>1.25<span class="nt">&lt;/version&gt;</span>
+<span class="nt">&lt;/dependency&gt;</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>使用原生的方式进行上传操作</p>
+
+    <ol>
+      <li>
+        <p>添加配置文件</p>
+
+        <div class="language-conf highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">connect_timeout</span> = <span class="m">2</span>
+<span class="n">network_timeout</span> = <span class="m">30</span>
+<span class="n">charset</span> = <span class="n">ISO8859</span>-<span class="m">1</span>
+<span class="n">http</span>.<span class="n">tracker_http_port</span> = <span class="m">8080</span>
+<span class="n">http</span>.<span class="n">anti_steal_token</span> = <span class="n">no</span>
+<span class="n">http</span>.<span class="n">secret_key</span> = <span class="n">FastDFS1234567890</span>
+      
+<span class="n">tracker_server</span> = <span class="m">192</span>.<span class="m">168</span>.<span class="m">30</span>.<span class="m">201</span>:<span class="m">22122</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>测试</p>
+
+        <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testUpload</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">IOException</span><span class="o">,</span> <span class="nc">MyException</span> <span class="o">{</span>
+  <span class="c1">//创建一个配置文件。文件名任意。内容就是 tracker 服务器的地址。</span>
+  <span class="c1">//使用全局对象加载配置文件。</span>
+  <span class="nc">ClientGlobal</span><span class="o">.</span><span class="na">init</span><span class="o">(</span><span class="s">"/Users/silhouette/git_demo/egobuy/"</span> <span class="o">+</span>
+                       <span class="s">"egobuy-common/src/test/resources/client.conf"</span><span class="o">);</span>
+  <span class="c1">//创建一个 TrackerClient 对象</span>
+  <span class="nc">TrackerClient</span> <span class="n">trackerClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">TrackerClient</span><span class="o">();</span>
+  <span class="c1">//通过 TrackClient 获得一个 TrackerServer 对象</span>
+  <span class="nc">TrackerServer</span> <span class="n">trackerServer</span> <span class="o">=</span> <span class="n">trackerClient</span><span class="o">.</span><span class="na">getConnection</span><span class="o">();</span>
+  <span class="c1">//创建一个 StrorageServer 的引用，可以是 null</span>
+  <span class="nc">StorageServer</span> <span class="n">storageServer</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+  <span class="c1">//创建一个 StorageClient ，参数需要 TrackerServer 和 StrorageServer</span>
+  <span class="nc">StorageClient</span> <span class="n">storageClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">StorageClient</span><span class="o">(</span><span class="n">trackerServer</span><span class="o">,</span> <span class="n">storageServer</span><span class="o">);</span>
+  <span class="c1">//使用 StorageClient 上传文件。</span>
+  <span class="nc">String</span><span class="o">[]</span> <span class="n">strings</span> <span class="o">=</span><span class="n">storageClient</span><span class="o">.</span><span class="na">upload_file</span><span class="o">(</span><span class="s">"/Users/silhouette/Pictures/pap.er"</span>          
+                        <span class="o">+</span><span class="s">"/2018_10_11_11_06_IMG_4257.JPG"</span><span class="o">,</span> <span class="s">"jpg"</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+      
+  <span class="k">for</span> <span class="o">(</span><span class="nc">String</span> <span class="n">string</span> <span class="o">:</span> <span class="n">strings</span><span class="o">)</span> <span class="o">{</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">string</span><span class="o">);</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>查看效果</p>
+
+        <ol>
+          <li>
+            <p>运行结果</p>
+
+            <p><img src="/img/images/fastDFS/00/10-运行结果.png" /></p>
+          </li>
+          <li>
+            <p>通过浏览器查看</p>
+
+            <p><img src="/img/images/fastDFS/00/11-浏览器查看.png" /></p>
+          </li>
+        </ol>
+      </li>
+    </ol>
+  </li>
+  <li>
+    <p>使用工具类进行上传操作</p>
+
+    <ol>
+      <li>
+        <p>添加工具类</p>
+
+        <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">FastDFSClient</span> <span class="o">{</span>
+      
+    <span class="kd">private</span> <span class="nc">TrackerClient</span> <span class="n">trackerClient</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="nc">TrackerServer</span> <span class="n">trackerServer</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="nc">StorageServer</span> <span class="n">storageServer</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="nc">StorageClient1</span> <span class="n">storageClient</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+      
+    <span class="kd">public</span> <span class="nf">FastDFSClient</span><span class="o">(</span><span class="nc">String</span> <span class="n">conf</span><span class="o">)</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+        <span class="c1">//"classpath:conf/client.conf"</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">conf</span><span class="o">.</span><span class="na">contains</span><span class="o">(</span><span class="s">"classpath:"</span><span class="o">))</span> <span class="o">{</span>
+            <span class="n">conf</span> <span class="o">=</span> <span class="n">conf</span><span class="o">.</span><span class="na">replace</span><span class="o">(</span><span class="s">"classpath:"</span><span class="o">,</span> <span class="k">this</span><span class="o">.</span><span class="na">getClass</span><span class="o">().</span><span class="na">getResource</span><span class="o">(</span><span class="s">"/"</span><span class="o">).</span><span class="na">getPath</span><span class="o">());</span>
+        <span class="o">}</span>
+        <span class="nc">ClientGlobal</span><span class="o">.</span><span class="na">init</span><span class="o">(</span><span class="n">conf</span><span class="o">);</span>
+        <span class="n">trackerClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">TrackerClient</span><span class="o">();</span>
+        <span class="n">trackerServer</span> <span class="o">=</span> <span class="n">trackerClient</span><span class="o">.</span><span class="na">getConnection</span><span class="o">();</span>
+        <span class="n">storageServer</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+        <span class="n">storageClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">StorageClient1</span><span class="o">(</span><span class="n">trackerServer</span><span class="o">,</span> <span class="n">storageServer</span><span class="o">);</span>
+    <span class="o">}</span>
+      
+    <span class="cm">/**
+     *
+     * @Title: uploadFile
+     * @Description: TODO 上传文件的方法
+     * @param fileName
+     * @param extName
+     * @param metas
+     * @return
+     * @throws Exception
+     */</span>
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">uploadFile</span><span class="o">(</span><span class="nc">String</span> <span class="n">fileName</span><span class="o">,</span> <span class="nc">String</span> <span class="n">extName</span><span class="o">,</span> <span class="nc">NameValuePair</span><span class="o">[]</span> <span class="n">metas</span><span class="o">)</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+        <span class="nc">String</span> <span class="n">result</span> <span class="o">=</span> <span class="n">storageClient</span><span class="o">.</span><span class="na">upload_file1</span><span class="o">(</span><span class="n">fileName</span><span class="o">,</span> <span class="n">extName</span><span class="o">,</span> <span class="n">metas</span><span class="o">);</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+    <span class="o">}</span>
+      
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">uploadFile</span><span class="o">(</span><span class="nc">String</span> <span class="n">fileName</span><span class="o">)</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="nf">uploadFile</span><span class="o">(</span><span class="n">fileName</span><span class="o">,</span> <span class="kc">null</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+    <span class="o">}</span>
+      
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">uploadFile</span><span class="o">(</span><span class="nc">String</span> <span class="n">fileName</span><span class="o">,</span> <span class="nc">String</span> <span class="n">extName</span><span class="o">)</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="nf">uploadFile</span><span class="o">(</span><span class="n">fileName</span><span class="o">,</span> <span class="n">extName</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+    <span class="o">}</span>
+      
+    <span class="cm">/**
+     *
+     * @Title: uploadFile
+     * @Description: TODO 上传文件的方法
+     * @param fileContent
+     * @param extName
+     * @param metas
+     * @return
+     * @throws Exception
+     */</span>
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">uploadFile</span><span class="o">(</span><span class="kt">byte</span><span class="o">[]</span> <span class="n">fileContent</span><span class="o">,</span> <span class="nc">String</span> <span class="n">extName</span><span class="o">,</span> <span class="nc">NameValuePair</span><span class="o">[]</span> <span class="n">metas</span><span class="o">)</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+      
+        <span class="nc">String</span> <span class="n">result</span> <span class="o">=</span> <span class="n">storageClient</span><span class="o">.</span><span class="na">upload_file1</span><span class="o">(</span><span class="n">fileContent</span><span class="o">,</span> <span class="n">extName</span><span class="o">,</span> <span class="n">metas</span><span class="o">);</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+    <span class="o">}</span>
+      
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">uploadFile</span><span class="o">(</span><span class="kt">byte</span><span class="o">[]</span> <span class="n">fileContent</span><span class="o">)</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="nf">uploadFile</span><span class="o">(</span><span class="n">fileContent</span><span class="o">,</span> <span class="kc">null</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+    <span class="o">}</span>
+      
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">uploadFile</span><span class="o">(</span><span class="kt">byte</span><span class="o">[]</span> <span class="n">fileContent</span><span class="o">,</span> <span class="nc">String</span> <span class="n">extName</span><span class="o">)</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="nf">uploadFile</span><span class="o">(</span><span class="n">fileContent</span><span class="o">,</span> <span class="n">extName</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>测试</p>
+
+        <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testUploadByClient</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span><span class="o">{</span>
+  <span class="nc">FastDFSClient</span> <span class="n">client</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">FastDFSClient</span><span class="o">(</span> <span class="s">"/Users/silhouette/git_demo/egobuy/"</span> <span class="o">+</span> 
+                                           <span class="s">"egobuy-common/src/test/resources/client.conf"</span><span class="o">);</span>
+  <span class="nc">String</span> <span class="n">file</span> <span class="o">=</span> <span class="n">client</span> <span class="o">.</span><span class="na">uploadFile</span><span class="o">(</span> 
+    <span class="s">"/Users/silhouette/Pictures/pap.er/2019_06_16_18_36_IMG_4666.JPG"</span><span class="o">);</span>
+      
+  <span class="nc">System</span><span class="o">.</span> <span class="n">out</span> <span class="o">.</span><span class="na">println</span><span class="o">(</span> <span class="n">file</span><span class="o">);</span>
+      
+<span class="o">}</span>
+</code></pre></div>        </div>
+      </li>
+    </ol>
+  </li>
+</ol>
+:ET

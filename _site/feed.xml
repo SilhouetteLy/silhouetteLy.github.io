@@ -5,8 +5,8 @@
     <description>Read well,and strive well for those wuh like it.</description>
     <link>http://localhost:4000/</link>
     <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Wed, 10 Jun 2020 15:54:59 +0800</pubDate>
-    <lastBuildDate>Wed, 10 Jun 2020 15:54:59 +0800</lastBuildDate>
+    <pubDate>Wed, 10 Jun 2020 16:26:51 +0800</pubDate>
+    <lastBuildDate>Wed, 10 Jun 2020 16:26:51 +0800</lastBuildDate>
     <generator>Jekyll v4.0.0</generator>
     
       <item>
@@ -625,6 +625,577 @@ server &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
         <guid isPermaLink="true">http://localhost:4000/2020/06/09/nginx00/</guid>
         
         <category>Nginx</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>FastDFS初识</title>
+        <description>&lt;p&gt;## 前言&lt;/p&gt;
+
+&lt;p&gt;最近利用空余时间做网盘上收藏好久的一个项目，项目中涉及到图片的上传和下载，使用的是分布式文件系统&lt;code class=&quot;highlighter-rouge&quot;&gt;FastDFS&lt;/code&gt;。所以本篇博客就是记录我个人在虚拟机上搭建&lt;code class=&quot;highlighter-rouge&quot;&gt;FastDFS&lt;/code&gt;与使用过程。&lt;/p&gt;
+
+&lt;h2 id=&quot;一-fastdfs介绍&quot;&gt;一、 FastDFS介绍&lt;/h2&gt;
+
+&lt;h3 id=&quot;11-fastdfs简介&quot;&gt;1.1 FastDFS简介&lt;/h3&gt;
+
+&lt;p&gt;FastDFS是用c语言编写的一款开源的分布式文件系统。FastDFS为互联网量身定制，充分考虑了冗余备份、负载均衡、线性扩容等机制，并注重高可用、高性能等指标，使用FastDFS很容易搭建一套高性能的文件服务器集群提供文件上传、下载等服务。&lt;/p&gt;
+
+&lt;h3 id=&quot;12-fastdfs架构&quot;&gt;1.2 FastDFS架构&lt;/h3&gt;
+
+&lt;p&gt;FastDFS架构包括 Tracker server和Storage server。客户端请求Tracker server进行文件上传、下载，通过Tracker server调度最终由Storage server完成文件上传和下载。&lt;/p&gt;
+
+&lt;p&gt;Tracker server作用是负载均衡和调度，通过Tracker server在文件上传时可以根据一些策略找到Storage server提供文件上传服务。可以将tracker称为追踪服务器或调度服务器。&lt;/p&gt;
+
+&lt;p&gt;Storage server作用是文件存储，客户端上传的文件最终存储在Storage服务器上，Storage server没有实现自己的文件系统而是利用操作系统 的文件系统来管理文件。可以将storage称为存储服务器。&lt;/p&gt;
+
+&lt;p&gt;如下图：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/images/fastDFS/00/01-FastDFS架构.png&quot; /&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;121-tracker-集群&quot;&gt;1.2.1 Tracker 集群&lt;/h4&gt;
+
+&lt;p&gt;FastDFS集群中的Tracker server可以有多台，Tracker server之间是相互平等关系同时提供服务，Tracker server不存在单点故障。客户端请求Tracker server采用轮询方式，如果请求的tracker无法提供服务则换另一个tracker。&lt;/p&gt;
+
+&lt;h4 id=&quot;122-storage集群&quot;&gt;1.2.2 Storage集群&lt;/h4&gt;
+
+&lt;p&gt;Storage集群采用了分组存储方式。storage集群由一个或多个组构成，集群存储总容量为集群中所有组的存储容量之和。一个组由一台或多台存储服务器组成，组内的Storage server之间是平等关系，不同组的Storage server之间不会相互通信，同组内的Storage server之间会相互连接进行文件同步，从而保证同组内每个storage上的文件完全一致的。一个组的存储容量为该组内存储服务器容量最小的那个，由此可见组内存储服务器的软硬件配置最好是一致的。&lt;/p&gt;
+
+&lt;p&gt;采用分组存储方式的好处是灵活、可控性较强。比如上传文件时，可以由客户端直接指定上传到的组也可以由tracker进行调度选择。一个分组的存储服务器访问压力较大时，可以在该组增加存储服务器来扩充服务能力（纵向扩容）。当系统容量不足时，可以增加组来扩充存储容量（横向扩容）。&lt;/p&gt;
+
+&lt;h4 id=&quot;123-storage状态收集&quot;&gt;1.2.3 Storage状态收集&lt;/h4&gt;
+
+&lt;p&gt;Storage server会连接集群中所有的Tracker server，定时向他们报告自己的状态，包括磁盘剩余空间、文件同步状况、文件上传下载次数等统计信息。&lt;/p&gt;
+
+&lt;h4 id=&quot;124-文件上传流程&quot;&gt;1.2.4 文件上传流程&lt;/h4&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/images/fastDFS/00/02-文件上传流程.png&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;客户端上传文件后存储服务器将文件ID返回给客户端，此文件ID用于以后访问该文件的索引信息。文件索引信息包括：组名，虚拟磁盘路径，数据两级目录，文件名。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/images/fastDFS/00/03-文件索引信息.png&quot; /&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;组名：文件上传后所在的storage组名称，在文件上传成功后有storage服务器返回，需要客户端自行保存。&lt;/li&gt;
+  &lt;li&gt;虚拟磁盘路径：storage配置的虚拟路径，与磁盘选项store_path*对应。如果配置了store_path0则是M00，如果配置了store_path1则是M01，以此类推。&lt;/li&gt;
+  &lt;li&gt;数据两级目录：storage服务器在每个虚拟磁盘路径下创建的两级目录，用于存储数据文件。&lt;/li&gt;
+  &lt;li&gt;文件名：与文件上传时不同。是由存储服务器根据特定信息生成，文件名包含：源存储服务器IP地址、文件创建时间戳、文件大小、随机数和文件拓展名等信息。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;125-文件下载流程&quot;&gt;1.2.5 文件下载流程&lt;/h4&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/images/fastDFS/00/04-文件下载流程.png&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;tracker根据请求的文件路径即文件ID 来快速定义文件。比如请求下边的文件：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/images/fastDFS/00/03-文件索引信息.png&quot; /&gt;&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;通过组名tracker能够很快的定位到客户端需要访问的存储服务器组是group1，并选择合适的存储服务器提供客户端访问。&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;存储服务器根据“文件存储虚拟磁盘路径”和“数据文件两级目录”可以很快定位到文件所在目录，并根据文件名找到客户端需要访问的文件。&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&quot;13-fastdfsnginx实现文件服务器&quot;&gt;1.3 FastDFS+Nginx实现文件服务器&lt;/h3&gt;
+
+&lt;h4 id=&quot;131-架构图&quot;&gt;1.3.1 架构图&lt;/h4&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/images/fastDFS/00/05-架构图.png&quot; /&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;132-fastdfstracker安装&quot;&gt;1.3.2 FastDFS–tracker安装&lt;/h4&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;FastDFS 安装环境&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;# FastDFS是C语言开发，建议在linux上运行，本教程使用Centos6.4作为安装环境。&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# 装FastDFS需要先将官网下载的源码进行编译，编译依赖gcc环境，如果没有gcc环境，需要安装gcc&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;yum &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;gcc-c++
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;安装lievent&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;# FastDFS依赖libevent库&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;yum &lt;span class=&quot;nt&quot;&gt;-y&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;libevent
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;安装 libfastcommon&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;# libfastcommon是FastDFS官方提供的，libfastcommon包含了FastDFS运行所需要的一些基础库。&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;rz libfastcommonV1.0.7.tar.gz
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; /home/silhouette
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;tar&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-zxvf&lt;/span&gt; libfastcommonV1.0.7.tar.gz
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd &lt;/span&gt;libfastcommon-1.0.7
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./make.sh
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./make.sh &lt;span class=&quot;nb&quot;&gt;install&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+
+    &lt;ul&gt;
+      &lt;li&gt;
+        &lt;p&gt;&lt;strong&gt;注意：libfastcommon&lt;/strong&gt;安装好后会自动将库文件拷贝至&lt;code class=&quot;highlighter-rouge&quot;&gt;/usr/lib64&lt;/code&gt;下，由于FastDFS程序引用&lt;code class=&quot;highlighter-rouge&quot;&gt; usr/lib&lt;/code&gt; 目录所以需要将&lt;code class=&quot;highlighter-rouge&quot;&gt;/usr/lib64&lt;/code&gt;下的库文件拷贝至&lt;code class=&quot;highlighter-rouge&quot;&gt; /usr/lib &lt;/code&gt;下。&lt;/p&gt;
+
+        &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cp&lt;/span&gt; /usr/lib64/libfastcommon.so /usr/lib
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cp&lt;/span&gt; /usr/lib64/libfastcommon.so /usr/local/lib/
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cp&lt;/span&gt; /usr/lib64/libfdfsclient.so /usr/lib
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cp&lt;/span&gt; /usr/lib64/libfdfsclient.so /usr/local/lib
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;        &lt;/div&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;安装fastdfs-5.05.tar.gz&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;rz FastDFS_v5.05.tar.gz
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;tar&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-zxvf&lt;/span&gt; FastDFS_v5.05.tar.gz
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd &lt;/span&gt;FastDFS
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./make.sh
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./make.sh &lt;span class=&quot;nb&quot;&gt;install&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# 安装成功将安装目录下的conf下的文件拷贝到/etc/fdfs/下。&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cp&lt;/span&gt; /home/silhouette/FastDFS/conf/&lt;span class=&quot;k&quot;&gt;*&lt;/span&gt; /etc/fads
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;配置tracker&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;vim tracker.conf
+&lt;span class=&quot;c&quot;&gt;## 修改FastDFS安装路径&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;base_path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/home/silhouette/FastDFS
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;启动&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf restart
+&lt;span class=&quot;c&quot;&gt;# 设置开机自动启动&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;vim /etc/rc.d/rc.local
+&lt;span class=&quot;c&quot;&gt;## 添加启动命令&lt;/span&gt;
+/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf restart
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/images/fastDFS/00/06-tracker启动.png&quot; /&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;133-fastdfsstorage安装&quot;&gt;1.3.3 FastDFS–storage安装&lt;/h4&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;配置 storage&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;vim storage.conf
+&lt;span class=&quot;c&quot;&gt;# 修改默认配置&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;base_path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/home/silhouette/FastDFS
+&lt;span class=&quot;nv&quot;&gt;store_path0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/home/silhouette/FastDFS/fdfs_storage
+&lt;span class=&quot;c&quot;&gt;#如果有多个挂载磁盘则定义多个store_path，如下&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;#store_path1=.....&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;#store_path2=......&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;tracker_server&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;192.168.30.201:22122   &lt;span class=&quot;c&quot;&gt;#配置tracker服务器:IP&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;#如果有多个则配置多个tracker&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;#tracker_server=192.168.101.4:22122&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;启动&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;/usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart
+&lt;span class=&quot;c&quot;&gt;# 设置开机自动启动&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;vim /etc/rc.d/rc.local
+&lt;span class=&quot;c&quot;&gt;## 添加启动命令&lt;/span&gt;
+/usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+
+    &lt;p&gt;&lt;img src=&quot;/img/images/fastDFS/00/07-storage启动.png&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h4 id=&quot;134-上传图片测试&quot;&gt;1.3.4 上传图片测试&lt;/h4&gt;
+
+&lt;p&gt;FastDFS安装成功可通过/usr/bin/fdfs_test测试上传、下载等操作。修改/etc/fdfs/client.conf：&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;vim /etc/fdfs/client.conf
+&lt;span class=&quot;c&quot;&gt;# 修改默认配置&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;base_path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/home/silhouette/FastDFS
+&lt;span class=&quot;nv&quot;&gt;tracker_server&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;192.168.30.201:22122
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;使用格式： &lt;code class=&quot;highlighter-rouge&quot;&gt;/usr/bin/fdfs_test&lt;/code&gt;  客户端配置文件地址 &lt;code class=&quot;highlighter-rouge&quot;&gt;upload&lt;/code&gt; 上传文件&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;## 示例：比如将/home下的图片上传到FastDFS中&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt; /usr/bin/fdfs_test /etc/fdfs/client.conf upload /home/anti-steal.jpg
+&lt;span class=&quot;c&quot;&gt;# 查看日志输出&lt;/span&gt;
+ http://192.168.30.201/group1/M00/00/00/wKgeyV7fLNyAci5dAABdrZgsqUU078.jpg &lt;span class=&quot;c&quot;&gt;#就是文件的下载路径&lt;/span&gt;
+ /home/silhouette/FastDFS/fdfs_storage/data/00/00/wKgeyV7fLNyAci5dAABdrZgsqUU078.jpg#对应storage服务器上的路径 
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;注意：由于现在还没有和nginx整合无法使用http下载&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&quot;14-fastdfs-和nginx整合&quot;&gt;1.4 FastDFS 和nginx整合&lt;/h3&gt;
+
+&lt;p&gt;以上内容其实已经完成了&lt;code class=&quot;highlighter-rouge&quot;&gt;FastDFS&lt;/code&gt;的配置，如果此时你用&lt;code class=&quot;highlighter-rouge&quot;&gt;Java&lt;/code&gt;等API 编辑客户端，实际上就完成了文件的上传、同步和下载。但是为什么网上会有人说需要&lt;code class=&quot;highlighter-rouge&quot;&gt;Nginx&lt;/code&gt;呢？其主要原因是因为：我们可以通过配置Nginx 为下载提供&lt;code class=&quot;highlighter-rouge&quot;&gt;基于http协议的下载等功能&lt;/code&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;tracker中安装 Nginx，主要是为了提供&lt;strong&gt;http访问的反向代理、负载均衡以及缓存服务&lt;/strong&gt;&lt;/li&gt;
+  &lt;li&gt;storage中安装 Nginx，主要是为了提供&lt;strong&gt;http的访问服务。同时解决group 中 storage 服务器的同步延迟问题&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;141--在-tracker上安装nginx&quot;&gt;1.4.1  在 tracker上安装nginx&lt;/h4&gt;
+
+&lt;p&gt;nginx的安装细节参考这里&lt;a href=&quot;https://silhouettely.github.io/2020/06/09/nginx00/&quot;&gt;传送门&lt;/a&gt;。&lt;/p&gt;
+
+&lt;p&gt;在每个tracker上安装nginx，的主要目的是做负载均衡及实现高可用。如果只有一台tracker服务器可以不配置nginx。&lt;/p&gt;
+
+&lt;h4 id=&quot;142-在-storage-上安装nginx&quot;&gt;1.4.2 在 Storage 上安装nginx&lt;/h4&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;FastDFS-nginx-module&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;rz FastDFS-nginx-module_v1.16.tar.gz
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; /home/silhouette
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;tar&lt;/span&gt; &lt;span class=&quot;nt&quot;&gt;-zxvf&lt;/span&gt; FastDFS-nginx-module_v1.16.tar.gz
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd &lt;/span&gt;FastDFS-nginx-module/src
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;vim conf
+&lt;span class=&quot;c&quot;&gt;# 修改config文件将/usr/local/路径改为/usr/&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+
+    &lt;p&gt;&lt;img src=&quot;/img/images/fastDFS/00/08-fastdfs-nginx-module配置文件的修改.png&quot; /&gt;&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;# 将FastDFS-nginx-module/src下的mod_FastDFS.conf拷贝至/etc/fdfs/下&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cp&lt;/span&gt; /home/silhouette/fastdfs-nginx-module/src/mod_fastdfs.conf /etc/fdfs/
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; /etc/fdfs
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;vim mod_fastdfs.conf
+&lt;span class=&quot;c&quot;&gt;# 修改mod_FastDFS.conf的内容：&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;base_path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/home/silhouette/FastDFS
+&lt;span class=&quot;nv&quot;&gt;tracker_server&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;192.168.30.201:22122
+&lt;span class=&quot;c&quot;&gt;#tracker_server=192.168.101.4:22122（多个tracker配置多行）&lt;/span&gt;
+url_have_group_name &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;true&lt;/span&gt;        &lt;span class=&quot;c&quot;&gt;#url中包含group名称&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;store_path0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/home/silhouette/FastDFS/fdfs_storage    &lt;span class=&quot;c&quot;&gt;#指定文件存储路径&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Nginx 安装&lt;/p&gt;
+
+    &lt;ol&gt;
+      &lt;li&gt;
+        &lt;p&gt;添加FastDFS-nginx-module模块&lt;/p&gt;
+
+        &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; /home/silhouette/nginx-1.8.0
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;./configure &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;--prefix&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/usr/local/nginx &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;--pid-path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/var/run/nginx/nginx.pid &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;--lock-path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/var/lock/nginx.lock &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;--error-log-path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/var/log/nginx/error.log &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;--http-log-path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/var/log/nginx/access.log &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;--with-http_gzip_static_module&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;--http-client-body-temp-path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/var/temp/nginx/client &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;--http-proxy-temp-path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/var/temp/nginx/proxy &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;--http-fastcgi-temp-path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/var/temp/nginx/fastcgi &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;--http-uwsgi-temp-path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/var/temp/nginx/uwsgi &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;--http-scgi-temp-path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/var/temp/nginx/scgi &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;--add-module&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/usr/local/fastdfs-nginx-module/src &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;--add-module&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/home/silhouette/fastdfs-nginx-module/src
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;p&gt;重新编译&lt;/p&gt;
+
+        &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;make
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;make &lt;span class=&quot;nb&quot;&gt;install&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;        &lt;/div&gt;
+      &lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;nginx配置文件&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;# 修改 nginx配置文件，添加server 代码块&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;cat &lt;/span&gt;nginx.conf
+worker_processes  1&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+   
+events &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    worker_connections  1024&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+   
+   
+http &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    include       mime.types&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    default_type  application/octet-stream&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+   
+    sendfile        on&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+       
+    keepalive_timeout  65&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+   
+    &lt;span class=&quot;c&quot;&gt;#gzip  on;&lt;/span&gt;
+   
+    server &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        listen       80&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        server_name  localhost&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+   
+        location / &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            root   html&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+            index  index.html index.htm&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+           
+        error_page   500 502 503 504  /50x.html&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        location &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; /50x.html &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            root   html&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+         
+        &lt;span class=&quot;c&quot;&gt;# ocation /group1/M00/：group1为nginx 服务FastDFS的分组名称&lt;/span&gt;
+        &lt;span class=&quot;c&quot;&gt;# M00是FastDFS自动生成编号，对应store_path0=/home/silhouette/FastDFS/fdfs_storage&lt;/span&gt;
+        &lt;span class=&quot;c&quot;&gt;# 如果FastDFS定义store_path1，这里就是M01&lt;/span&gt;
+        location ~/group1/M00/&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+             root /home/silhouette/FastDFS/fdfs_storage/data&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+             ngx_fastdfs_module&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;测试&lt;/p&gt;
+
+    &lt;ul&gt;
+      &lt;li&gt;
+        &lt;p&gt;上述我们已经给服务器中添加过图片，现在就可以直接通过浏览器来直接访问 storage：&lt;/p&gt;
+
+        &lt;pre&gt;&lt;code class=&quot;language-txt&quot;&gt;http://192.168.30.201/group1/M00/00/00/wKgeyV7fLNyAci5dAABdrZgsqUU078.jpg
+&lt;/code&gt;&lt;/pre&gt;
+
+        &lt;p&gt;&lt;img src=&quot;/img/images/fastDFS/00/09-测试效果图.png&quot; /&gt;&lt;/p&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h4 id=&quot;143-图片服务器的迁移安装&quot;&gt;1.4.3 图片服务器的迁移安装&lt;/h4&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;编辑网络&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;# 查看当前虚拟机网络，并保持网络畅通&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;ip addr
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;编辑文件&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;vi /etc/fdfs/storage.conf
+&lt;span class=&quot;c&quot;&gt;# 修改为当前虚拟机的IP&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;tracker_server&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;192.168.30.201:22122
+   
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;vi /usr/local/nginx/conf/nginx.conf
+&lt;span class=&quot;c&quot;&gt;# 修改为当前虚拟机的IP&lt;/span&gt;
+ server&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        listen            80&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        server_name      192.168.30.201&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+           
+        location ~/group1/M00/&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+             root /home/silhouette/FastDFS/fdfs_storage/data&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+             ngx_fastdfs_module&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;编写一键启动的批处理文件&lt;/p&gt;
+
+    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt; vim start-all.sh
+&lt;span class=&quot;c&quot;&gt;# 在文件中输入如下命令&lt;/span&gt;
+/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf restart
+/usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart
+&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; /usr/local/nginx/sbin
+./nginx
+&lt;span class=&quot;nb&quot;&gt;cd&lt;/span&gt; ~
+   
+&lt;span class=&quot;c&quot;&gt;# 修改文件权限&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;chmod &lt;/span&gt;u+x start-all.sh
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h3 id=&quot;15-java-客户端使用图片服务器&quot;&gt;1.5 Java 客户端使用图片服务器&lt;/h3&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;添加环境依赖&lt;/p&gt;
+
+    &lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt; &lt;span class=&quot;c&quot;&gt;&amp;lt;!-- fastDFSClient --&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;fastdfs_client&lt;span class=&quot;nt&quot;&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;fastdfs_client&lt;span class=&quot;nt&quot;&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;lt;version&amp;gt;&lt;/span&gt;1.25&lt;span class=&quot;nt&quot;&gt;&amp;lt;/version&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;使用原生的方式进行上传操作&lt;/p&gt;
+
+    &lt;ol&gt;
+      &lt;li&gt;
+        &lt;p&gt;添加配置文件&lt;/p&gt;
+
+        &lt;div class=&quot;language-conf highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;connect_timeout&lt;/span&gt; = &lt;span class=&quot;m&quot;&gt;2&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;network_timeout&lt;/span&gt; = &lt;span class=&quot;m&quot;&gt;30&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;charset&lt;/span&gt; = &lt;span class=&quot;n&quot;&gt;ISO8859&lt;/span&gt;-&lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;http&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;tracker_http_port&lt;/span&gt; = &lt;span class=&quot;m&quot;&gt;8080&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;http&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;anti_steal_token&lt;/span&gt; = &lt;span class=&quot;n&quot;&gt;no&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;http&lt;/span&gt;.&lt;span class=&quot;n&quot;&gt;secret_key&lt;/span&gt; = &lt;span class=&quot;n&quot;&gt;FastDFS1234567890&lt;/span&gt;
+      
+&lt;span class=&quot;n&quot;&gt;tracker_server&lt;/span&gt; = &lt;span class=&quot;m&quot;&gt;192&lt;/span&gt;.&lt;span class=&quot;m&quot;&gt;168&lt;/span&gt;.&lt;span class=&quot;m&quot;&gt;30&lt;/span&gt;.&lt;span class=&quot;m&quot;&gt;201&lt;/span&gt;:&lt;span class=&quot;m&quot;&gt;22122&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;p&gt;测试&lt;/p&gt;
+
+        &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;testUpload&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;IOException&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;MyException&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;//创建一个配置文件。文件名任意。内容就是 tracker 服务器的地址。&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;//使用全局对象加载配置文件。&lt;/span&gt;
+  &lt;span class=&quot;nc&quot;&gt;ClientGlobal&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;init&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;/Users/silhouette/git_demo/egobuy/&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;
+                       &lt;span class=&quot;s&quot;&gt;&quot;egobuy-common/src/test/resources/client.conf&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;//创建一个 TrackerClient 对象&lt;/span&gt;
+  &lt;span class=&quot;nc&quot;&gt;TrackerClient&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;trackerClient&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TrackerClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;//通过 TrackClient 获得一个 TrackerServer 对象&lt;/span&gt;
+  &lt;span class=&quot;nc&quot;&gt;TrackerServer&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;trackerServer&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;trackerClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getConnection&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;//创建一个 StrorageServer 的引用，可以是 null&lt;/span&gt;
+  &lt;span class=&quot;nc&quot;&gt;StorageServer&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;storageServer&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;//创建一个 StorageClient ，参数需要 TrackerServer 和 StrorageServer&lt;/span&gt;
+  &lt;span class=&quot;nc&quot;&gt;StorageClient&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;storageClient&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;StorageClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;trackerServer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;storageServer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;//使用 StorageClient 上传文件。&lt;/span&gt;
+  &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;strings&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;storageClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;upload_file&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;/Users/silhouette/Pictures/pap.er&quot;&lt;/span&gt;          
+                        &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;/2018_10_11_11_06_IMG_4257.JPG&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;jpg&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+      
+  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;string&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;strings&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;out&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;p&gt;查看效果&lt;/p&gt;
+
+        &lt;ol&gt;
+          &lt;li&gt;
+            &lt;p&gt;运行结果&lt;/p&gt;
+
+            &lt;p&gt;&lt;img src=&quot;/img/images/fastDFS/00/10-运行结果.png&quot; /&gt;&lt;/p&gt;
+          &lt;/li&gt;
+          &lt;li&gt;
+            &lt;p&gt;通过浏览器查看&lt;/p&gt;
+
+            &lt;p&gt;&lt;img src=&quot;/img/images/fastDFS/00/11-浏览器查看.png&quot; /&gt;&lt;/p&gt;
+          &lt;/li&gt;
+        &lt;/ol&gt;
+      &lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;使用工具类进行上传操作&lt;/p&gt;
+
+    &lt;ol&gt;
+      &lt;li&gt;
+        &lt;p&gt;添加工具类&lt;/p&gt;
+
+        &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;FastDFSClient&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+      
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TrackerClient&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;trackerClient&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TrackerServer&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;trackerServer&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;StorageServer&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;storageServer&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;StorageClient1&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;storageClient&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+      
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;FastDFSClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;conf&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;//&quot;classpath:conf/client.conf&quot;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conf&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;contains&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;classpath:&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;conf&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;conf&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;replace&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;classpath:&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getResource&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;/&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getPath&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;());&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;ClientGlobal&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;init&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;conf&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;trackerClient&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TrackerClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;trackerServer&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;trackerClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getConnection&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;storageServer&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;storageClient&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;StorageClient1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;trackerServer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;storageServer&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+      
+    &lt;span class=&quot;cm&quot;&gt;/**
+     *
+     * @Title: uploadFile
+     * @Description: TODO 上传文件的方法
+     * @param fileName
+     * @param extName
+     * @param metas
+     * @return
+     * @throws Exception
+     */&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;uploadFile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fileName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;extName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;NameValuePair&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;metas&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;result&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;storageClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;upload_file1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fileName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;extName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;metas&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;result&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+      
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;uploadFile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fileName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;uploadFile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fileName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+      
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;uploadFile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fileName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;extName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;uploadFile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fileName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;extName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+      
+    &lt;span class=&quot;cm&quot;&gt;/**
+     *
+     * @Title: uploadFile
+     * @Description: TODO 上传文件的方法
+     * @param fileContent
+     * @param extName
+     * @param metas
+     * @return
+     * @throws Exception
+     */&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;uploadFile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fileContent&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;extName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;NameValuePair&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;metas&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+      
+        &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;result&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;storageClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;upload_file1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fileContent&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;extName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;metas&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;result&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+      
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;uploadFile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fileContent&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;uploadFile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fileContent&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+      
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;uploadFile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fileContent&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;extName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;uploadFile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fileContent&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;extName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;        &lt;/div&gt;
+      &lt;/li&gt;
+      &lt;li&gt;
+        &lt;p&gt;测试&lt;/p&gt;
+
+        &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;testUploadByClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Exception&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nc&quot;&gt;FastDFSClient&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;client&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;FastDFSClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;/Users/silhouette/git_demo/egobuy/&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; 
+                                           &lt;span class=&quot;s&quot;&gt;&quot;egobuy-common/src/test/resources/client.conf&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;client&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;uploadFile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt; 
+    &lt;span class=&quot;s&quot;&gt;&quot;/Users/silhouette/Pictures/pap.er/2019_06_16_18_36_IMG_4666.JPG&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+      
+  &lt;span class=&quot;nc&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;out&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+      
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;        &lt;/div&gt;
+      &lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+</description>
+        <pubDate>Tue, 09 Jun 2020 20:48:46 +0800</pubDate>
+        <link>http://localhost:4000/2020/06/09/fasrDFS00/</link>
+        <guid isPermaLink="true">http://localhost:4000/2020/06/09/fasrDFS00/</guid>
+        
+        <category>FastDFS</category>
         
         
       </item>
