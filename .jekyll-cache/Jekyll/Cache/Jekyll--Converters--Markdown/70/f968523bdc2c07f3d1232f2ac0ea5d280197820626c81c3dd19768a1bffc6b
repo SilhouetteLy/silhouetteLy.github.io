@@ -1,4 +1,4 @@
-I"Z�<p>## 前言</p>
+I"e�<h2 id="前言">前言</h2>
 
 <p>最近利用空余时间做网盘上收藏好久的一个项目，项目中涉及到图片的上传和下载，使用的是分布式文件系统<code class="highlighter-rouge">FastDFS</code>。所以本篇博客就是记录我个人在虚拟机上搭建<code class="highlighter-rouge">FastDFS</code>与使用过程。</p>
 
