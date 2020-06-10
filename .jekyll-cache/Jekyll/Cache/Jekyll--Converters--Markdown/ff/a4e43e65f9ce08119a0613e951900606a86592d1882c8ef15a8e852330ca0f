@@ -1,0 +1,609 @@
+I"v<h2 id="前言">前言</h2>
+
+<p>最近有点时间，就想把网盘中收藏的一个大型项目实现一下，项目中涉及到图片的上传和下载，使用的是分布式文件系统<code class="highlighter-rouge">FastDFS</code>。而<code class="highlighter-rouge">FastDFS</code>图片服务器需要和<code class="highlighter-rouge">Nginx</code>整合后才能提供基于 HTTP协议的下载等功能，所以搭建<code class="highlighter-rouge">FastDFS</code>之前得需要简单的了解一下<code class="highlighter-rouge">Nginx</code>，于是就有了这篇<code class="highlighter-rouge">Blog</code>，后期会继续深入学习<code class="highlighter-rouge">Nginx</code>，所以这篇博客就简单的介绍一下<code class="highlighter-rouge">Nginx</code>及其安装过程。</p>
+
+<h2 id="一nginx-初识">一、Nginx 初识</h2>
+
+<h3 id="11-什么是nginx">1.1 什么是Nginx</h3>
+
+<p>Nginx 是一款高性能的 http 服务器/反向代理服务器及电子邮件（IMAP/POP3）代理服务器。 由俄罗斯的程序设计师 Igor Sysoev 所开发，官方测试 nginx 能够支支撑 5 万并发链接，并 且 cpu、内存等资源消耗却非常低，运行非常稳定。</p>
+
+<h3 id="12-应用场景">1.2 应用场景</h3>
+
+<ol>
+  <li>http 服务器。Nginx 是一个 http 服务可以独立提供 http 服务。可以做网页静态服务器。</li>
+  <li>虚拟主机。可以实现在一台服务器虚拟出多个网站。例如个人网站使用的虚拟主机。</li>
+  <li>反向代理，负载均衡。当网站的访问量达到一定程度后，单台服务器不能满足用户的请 求时，需要用多台服务器集群可以使用 nginx 做反向代理。并且多台服务器可以平均分担负载，不会因为某台服务器负载高宕机而某台服务器闲置的情况。</li>
+</ol>
+
+<h3 id="13-nginx-安装">1.3 Nginx 安装</h3>
+
+<h4 id="131-windows环境的安装">1.3.1 Windows环境的安装</h4>
+
+<ol>
+  <li>下载 nginx：<a href="http://nginx.org/en/download.html">官方网站</a></li>
+  <li>将zip文件加压到自定义目录下即可。</li>
+  <li>加压文件后的主要目录说明：
+    <ul>
+      <li>conf目录：存放Nginx的主要配置文件，很多功能实现都是通过配置该目录下的nginx.conf文件</li>
+      <li>docs目录：存放Nginx服务器的主要文档资料，包括Nginx服务器的LICENSE、OpenSSL的LICENSE、PCRE的LICENSE以及zlib的LICENSE，还包括本版本的Nginx服务器升级的版本变更说明，以及README文档。</li>
+      <li>html目录：存放了两个后缀名为.html的静态网页文件，这两个文件与Nginx服务器的运行相关</li>
+      <li>logs目录：存放Nginx服务器运行的日志文件</li>
+      <li>nginx.exe：启动Nginx服务器的exe文件，如果conf目录下的nginx.conf文件配置正确的话，通过该文件即可启动Nginx服务器</li>
+    </ul>
+  </li>
+  <li>启动运行
+    <ul>
+      <li>双击加压后的文件中的nginx.exe文件，出现一闪而过的画面，则启动成功</li>
+      <li>然后在浏览器中输入 http://localhost或者 http://localhost:80 会出现启动成功的画面</li>
+    </ul>
+  </li>
+</ol>
+
+<h4 id="132-linux环境的安装">1.3.2 Linux环境的安装</h4>
+
+<ol>
+  <li>
+    <p>安装环境要求</p>
+
+    <ol>
+      <li>
+        <p>需要安装 gcc 的环境</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>yum <span class="nb">install </span>gcc-c++
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>第三方的开发包</p>
+
+        <ul>
+          <li>
+            <p><strong>PCRE(Perl Compatible Regular Expressions)</strong> 是一个 Perl 库，包括 perl 兼容的正则表达式 库。nginx 的 http 模块使用 pcre 来解析正则表达式，所以需要在 linux 上安装 pc re 库。</p>
+
+            <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>yum <span class="nb">install</span> <span class="nt">-y</span> pcre pcre-devel
+</code></pre></div>            </div>
+          </li>
+          <li>
+            <p><strong>zlib</strong> 库提供了很多种压缩和解压缩的方式，nginx 使用 zlib 对 http 包的内容进行 gzip， 所以需要在 linux 上安装 zlib 库。</p>
+
+            <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>yum <span class="nb">install</span> <span class="nt">-y</span> zlib zlib-devel
+</code></pre></div>            </div>
+          </li>
+          <li>
+            <p><strong>OpenSSL</strong>是一个强大的安全套接字层密码库，囊括主要的密码算法、常用的密钥和证 书封装管理功能及 SSL 协议，并提供丰富的应用程序供测试或其它目的使用。 nginx 不仅支持 http 协议，还支持 https （即在 ssl 协议上传输 http），所以需要在 linux 安装 openssl 库。</p>
+
+            <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>yum <span class="nb">install</span> <span class="nt">-y</span> openssl openssl-devel
+</code></pre></div>            </div>
+          </li>
+        </ul>
+      </li>
+    </ol>
+  </li>
+  <li>
+    <p>安装步骤</p>
+
+    <ol>
+      <li>
+        <p>把 nginx 的源码包上传到 linux 系统</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>rz nginx-1.8.0.tar.gz
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>安装编译</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">tar</span> <span class="nt">-zxvf</span> nginx-1.8.0.tar.gz
+<span class="nv">$ </span><span class="nb">cd </span>nginx-1.8.0
+</code></pre></div>        </div>
+
+        <ol>
+          <li>
+            <p>configure</p>
+
+            <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># ./configure --help查询详细参数（参考本教程附录部分：nginx编译参数）</span>
+<span class="c"># 进入 nginx 目录使用 configure 命令创建一 makeFile 文件。</span>
+<span class="c"># 参数设置如下：</span>
+<span class="nv">$ </span>./configure <span class="se">\</span>
+<span class="nt">--prefix</span><span class="o">=</span>/usr/local/nginx <span class="se">\</span>
+<span class="nt">--pid-path</span><span class="o">=</span>/var/run/nginx/nginx.pid <span class="se">\</span>
+<span class="nt">--lock-path</span><span class="o">=</span>/var/lock/nginx.lock <span class="se">\</span>
+<span class="nt">--error-log-path</span><span class="o">=</span>/var/log/nginx/error.log <span class="se">\</span>
+<span class="nt">--http-log-path</span><span class="o">=</span>/var/log/nginx/access.log <span class="se">\</span>
+<span class="nt">--with-http_gzip_static_module</span> <span class="se">\</span>
+<span class="nt">--http-client-body-temp-path</span><span class="o">=</span>/var/temp/nginx/client <span class="se">\</span>
+<span class="nt">--http-proxy-temp-path</span><span class="o">=</span>/var/temp/nginx/proxy <span class="se">\</span>
+<span class="nt">--http-fastcgi-temp-path</span><span class="o">=</span>/var/temp/nginx/fastcgi <span class="se">\</span>
+<span class="nt">--http-uwsgi-temp-path</span><span class="o">=</span>/var/temp/nginx/uwsgi <span class="se">\</span>
+<span class="nt">--http-scgi-temp-path</span><span class="o">=</span>/var/temp/nginx/scgi
+</code></pre></div>            </div>
+
+            <blockquote>
+              <p>注意：上边将临时文件目录指定为<code class="highlighter-rouge">/var/temp/nginx</code>，需要在<code class="highlighter-rouge">/var</code>下创建<code class="highlighter-rouge">temp</code>及<code class="highlighter-rouge">nginx</code>目录</p>
+
+              <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">mkdir</span> /var/temp/nginx/client –p
+</code></pre></div>              </div>
+            </blockquote>
+          </li>
+          <li>
+            <p>编译安装</p>
+
+            <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>make
+<span class="nv">$ </span>make  <span class="nb">install</span>
+</code></pre></div>            </div>
+
+            <p>安装成功查看安装目录 ：</p>
+
+            <p><img src="/img/images/nginx/00/01-安装成功后的目录.png" /></p>
+          </li>
+        </ol>
+      </li>
+    </ol>
+  </li>
+  <li>
+    <p>启动 Nginx</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cd</span> /usr/local/nginx/sbin/
+<span class="nv">$ </span>./nginx
+   
+<span class="c"># 停止 nginx</span>
+<span class="c"># 方式一：此方式相当于先查出nginx进程id再使用kill命令强制杀掉进程</span>
+<span class="nv">$ </span>./nginx <span class="nt">-s</span> stop 
+<span class="c"># 方式二：此方式停止步骤是待nginx进程处理任务完毕进行停止。</span>
+<span class="nv">$ </span>./nginx <span class="nt">-s</span> quit
+   
+<span class="c"># 重启 nginx</span>
+<span class="c"># 方式一：先停止仔启动(建议使用)</span>
+<span class="c"># 即：对nginx进行重启相当于先停止nginx再启动nginx，即先执行停止命令再执行启动命令。</span>
+<span class="nv">$ </span>./nginx <span class="nt">-s</span> quit
+<span class="nv">$ </span>./nginx
+<span class="c"># 方式二：重新加载配置文件</span>
+<span class="c"># 即：当nginx的配置文件nginx.conf修改后，要想让配置生效需要重启nginx，使用-s reload不用先停止nginx再启动nginx即可将配置信息在nginx中生效</span>
+<span class="nv">$ </span>./nginx <span class="nt">-s</span> reload
+</code></pre></div>    </div>
+
+    <blockquote>
+      <p>注意：执行<code class="highlighter-rouge">./nginx</code>启动<code class="highlighter-rouge">nginx</code>，这里可以<code class="highlighter-rouge">-c</code>指定加载的<code class="highlighter-rouge">nginx</code>配置文件，如下：<code class="highlighter-rouge">./nginx -c /usr/local/nginx/conf/nginx.conf</code>。如果不指定<code class="highlighter-rouge">-c</code>，nginx在启动时默认加载<code class="highlighter-rouge">conf/nginx.conf</code>文件，此文件的地址也可以在编译安装<code class="highlighter-rouge">nginx</code>时指定<code class="highlighter-rouge">./configure</code>的参数(<code class="highlighter-rouge">--conf-path=</code> **指向配置文件<code class="highlighter-rouge">nginx.conf</code>)</p>
+    </blockquote>
+  </li>
+  <li>
+    <p>访问 Nginx</p>
+
+    <p>nginx安装成功，启动nginx，即可访问虚拟机上的nginx；<code class="highlighter-rouge">192.168.30.201:80</code></p>
+  </li>
+  <li>
+    <p>开机自启动 nginx</p>
+
+    <ol>
+      <li>
+        <p>编写 shell 脚本</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim /etc/init.d/nginx
+<span class="c">## 脚本代码</span>
+<span class="c">#!/bin/bash</span>
+<span class="c"># nginx Startup script for the Nginx HTTP Server</span>
+<span class="c"># it is v.0.0.2 version.</span>
+<span class="c"># chkconfig: - 85 15</span>
+<span class="c"># description: Nginx is a high-performance web and proxy server.</span>
+<span class="c">#              It has a lot of features, but it's not for everyone.</span>
+<span class="c"># processname: nginx</span>
+<span class="c"># pidfile: /var/run/nginx.pid</span>
+<span class="c"># config: /usr/local/nginx/conf/nginx.conf</span>
+<span class="nv">nginxd</span><span class="o">=</span>/usr/local/nginx/sbin/nginx
+<span class="nv">nginx_config</span><span class="o">=</span>/usr/local/nginx/conf/nginx.conf
+<span class="nv">nginx_pid</span><span class="o">=</span>/var/run/nginx.pid
+<span class="nv">RETVAL</span><span class="o">=</span>0
+<span class="nv">prog</span><span class="o">=</span><span class="s2">"nginx"</span>
+<span class="c"># Source function library.</span>
+<span class="nb">.</span> /etc/rc.d/init.d/functions
+<span class="c"># Source networking configuration.</span>
+<span class="nb">.</span> /etc/sysconfig/network
+<span class="c"># Check that networking is up.</span>
+<span class="o">[</span> <span class="k">${</span><span class="nv">NETWORKING</span><span class="k">}</span> <span class="o">=</span> <span class="s2">"no"</span> <span class="o">]</span> <span class="o">&amp;&amp;</span> <span class="nb">exit </span>0
+<span class="o">[</span> <span class="nt">-x</span> <span class="nv">$nginxd</span> <span class="o">]</span> <span class="o">||</span> <span class="nb">exit </span>0
+<span class="c"># Start nginx daemons functions.</span>
+start<span class="o">()</span> <span class="o">{</span>
+<span class="k">if</span> <span class="o">[</span> <span class="nt">-e</span> <span class="nv">$nginx_pid</span> <span class="o">]</span><span class="p">;</span><span class="k">then
+   </span><span class="nb">echo</span> <span class="s2">"nginx already running...."</span>
+   <span class="nb">exit </span>1
+<span class="k">fi
+   </span><span class="nb">echo</span> <span class="nt">-n</span> <span class="s2">$"Starting </span><span class="nv">$prog</span><span class="s2">: "</span>
+   daemon <span class="nv">$nginxd</span> <span class="nt">-c</span> <span class="k">${</span><span class="nv">nginx_config</span><span class="k">}</span>
+   <span class="nv">RETVAL</span><span class="o">=</span><span class="nv">$?</span>
+   <span class="nb">echo</span>
+   <span class="o">[</span> <span class="nv">$RETVAL</span> <span class="o">=</span> 0 <span class="o">]</span> <span class="o">&amp;&amp;</span> <span class="nb">touch</span> /var/lock/subsys/nginx
+   <span class="k">return</span> <span class="nv">$RETVAL</span>
+<span class="o">}</span>
+<span class="c"># Stop nginx daemons functions.</span>
+stop<span class="o">()</span> <span class="o">{</span>
+        <span class="nb">echo</span> <span class="nt">-n</span> <span class="s2">$"Stopping </span><span class="nv">$prog</span><span class="s2">: "</span>
+        killproc <span class="nv">$nginxd</span>
+        <span class="nv">RETVAL</span><span class="o">=</span><span class="nv">$?</span>
+        <span class="nb">echo</span>
+        <span class="o">[</span> <span class="nv">$RETVAL</span> <span class="o">=</span> 0 <span class="o">]</span> <span class="o">&amp;&amp;</span> <span class="nb">rm</span> <span class="nt">-f</span> /var/lock/subsys/nginx /var/run/nginx.pid
+<span class="o">}</span>
+<span class="c"># reload nginx service functions.</span>
+reload<span class="o">()</span> <span class="o">{</span>
+    <span class="nb">echo</span> <span class="nt">-n</span> <span class="s2">$"Reloading </span><span class="nv">$prog</span><span class="s2">: "</span>
+    <span class="c">#kill -HUP `cat ${nginx_pid}`</span>
+    killproc <span class="nv">$nginxd</span> <span class="nt">-HUP</span>
+    <span class="nv">RETVAL</span><span class="o">=</span><span class="nv">$?</span>
+    <span class="nb">echo</span>
+<span class="o">}</span>
+<span class="c"># See how we were called.</span>
+<span class="k">case</span> <span class="s2">"</span><span class="nv">$1</span><span class="s2">"</span> <span class="k">in
+</span>start<span class="p">)</span>
+        start
+        <span class="p">;;</span>
+stop<span class="p">)</span>
+        stop
+        <span class="p">;;</span>
+reload<span class="p">)</span>
+        reload
+        <span class="p">;;</span>
+restart<span class="p">)</span>
+        stop
+        start
+        <span class="p">;;</span>
+status<span class="p">)</span>
+        status <span class="nv">$prog</span>
+        <span class="nv">RETVAL</span><span class="o">=</span><span class="nv">$?</span>
+        <span class="p">;;</span>
+<span class="k">*</span><span class="p">)</span>
+        <span class="nb">echo</span> <span class="s2">$"Usage: </span><span class="nv">$prog</span><span class="s2"> {start|stop|restart|reload|status|help}"</span>
+        <span class="nb">exit </span>1
+<span class="k">esac
+</span><span class="nb">exit</span> <span class="nv">$RETVAL</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>设置文件的访问权限</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># a+x ==&gt; all user can execute  所有用户可执行</span>
+<span class="nv">$ </span><span class="nb">chmod </span>a+x /etc/init.d/nginx 
+<span class="nv">$ </span>/etc/init.d/nginx status|start|stop|restart
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>加入到 <code class="highlighter-rouge">rc.local</code>文件中</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim /etc/rc.local
+<span class="c"># 加入一行  /etc/init.d/nginx start    保存并退出，下次重启会生效。</span>
+</code></pre></div>        </div>
+      </li>
+    </ol>
+  </li>
+</ol>
+
+<h3 id="14-配置虚拟主机">1.4 配置虚拟主机</h3>
+
+<p>就是在一台服务器启动多个网站。如何区分不同的网站：域名不同、端口不同</p>
+
+<h4 id="141-通过端口区分不同虚拟机">1.4.1 通过端口区分不同虚拟机</h4>
+
+<p>Nginx 的配置文件： /usr/local/nginx/conf/nginx.conf</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#user  nobody;</span>
+worker_processes  1<span class="p">;</span>
+
+<span class="c">#error_log  logs/error.log;</span>
+<span class="c">#error_log  logs/error.log  notice;</span>
+<span class="c">#error_log  logs/error.log  info;</span>
+
+<span class="c">#pid        logs/nginx.pid;</span>
+
+
+events <span class="o">{</span>
+    worker_connections  1024<span class="p">;</span>
+<span class="o">}</span>
+
+
+http <span class="o">{</span>
+    include       mime.types<span class="p">;</span>
+    default_type  application/octet-stream<span class="p">;</span>
+
+    <span class="c">#log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '</span>
+    <span class="c">#                  '$status $body_bytes_sent "$http_referer" '</span>
+    <span class="c">#                  '"$http_user_agent" "$http_x_forwarded_for"';</span>
+
+    <span class="c">#access_log  logs/access.log  main;</span>
+
+    sendfile        on<span class="p">;</span>
+    <span class="c">#tcp_nopush     on;</span>
+
+    <span class="c">#keepalive_timeout  0;</span>
+    keepalive_timeout  65<span class="p">;</span>
+
+    <span class="c">#gzip  on;</span>
+
+    server <span class="o">{</span>
+        listen       80<span class="p">;</span>
+        server_name  localhost<span class="p">;</span>
+
+        <span class="c">#charset koi8-r;</span>
+
+        <span class="c">#access_log  logs/host.access.log  main;</span>
+
+        location / <span class="o">{</span>
+            root   html<span class="p">;</span>
+            index  index.html index.htm<span class="p">;</span>
+        <span class="o">}</span>
+
+        <span class="c">#error_page  404              /404.html;</span>
+
+        <span class="c"># redirect server error pages to the static page /50x.html</span>
+        <span class="c">#</span>
+        error_page   500 502 503 504  /50x.html<span class="p">;</span>
+        location <span class="o">=</span> /50x.html <span class="o">{</span>
+            root   html<span class="p">;</span>
+        <span class="o">}</span>
+
+        <span class="c"># proxy the PHP scripts to Apache listening on 127.0.0.1:80</span>
+        <span class="c">#</span>
+        <span class="c">#location ~ \.php$ {</span>
+        <span class="c">#    proxy_pass   http://127.0.0.1;</span>
+        <span class="c">#}</span>
+
+        <span class="c"># pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000</span>
+        <span class="c">#</span>
+        <span class="c">#location ~ \.php$ {</span>
+        <span class="c">#    root           html;</span>
+        <span class="c">#    fastcgi_pass   127.0.0.1:9000;</span>
+        <span class="c">#    fastcgi_index  index.php;</span>
+        <span class="c">#    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;</span>
+        <span class="c">#    include        fastcgi_params;</span>
+        <span class="c">#}</span>
+
+        <span class="c"># deny access to .htaccess files, if Apache's document root</span>
+        <span class="c"># concurs with nginx's one</span>
+        <span class="c">#</span>
+        <span class="c">#location ~ /\.ht {</span>
+        <span class="c">#    deny  all;</span>
+        <span class="c">#}</span>
+    <span class="o">}</span>
+
+
+    <span class="c"># another virtual host using mix of IP-, name-, and port-based configuration</span>
+    <span class="c">#</span>
+    <span class="c">#server {</span>
+    <span class="c">#    listen       8000;</span>
+    <span class="c">#    listen       somename:8080;</span>
+    <span class="c">#    server_name  somename  alias  another.alias;</span>
+
+    <span class="c">#    location / {</span>
+    <span class="c">#        root   html;</span>
+    <span class="c">#        index  index.html index.htm;</span>
+    <span class="c">#    }</span>
+    <span class="c">#}</span>
+
+
+    <span class="c"># HTTPS server</span>
+    <span class="c">#</span>
+    <span class="c">#server {</span>
+    <span class="c">#    listen       443 ssl;</span>
+    <span class="c">#    server_name  localhost;</span>
+
+    <span class="c">#    ssl_certificate      cert.pem;</span>
+    <span class="c">#    ssl_certificate_key  cert.key;</span>
+
+    <span class="c">#    ssl_session_cache    shared:SSL:1m;</span>
+    <span class="c">#    ssl_session_timeout  5m;</span>
+
+    <span class="c">#    ssl_ciphers  HIGH:!aNULL:!MD5;</span>
+    <span class="c">#    ssl_prefer_server_ciphers  on;</span>
+
+    <span class="c">#    location / {</span>
+    <span class="c">#        root   html;</span>
+    <span class="c">#        index  index.html index.htm;</span>
+    <span class="c">#    }</span>
+    <span class="c">#}</span>
+
+<span class="o">}</span>
+</code></pre></div></div>
+
+<blockquote>
+  <p>一个 server 节点就是一个虚拟主机，可以配置多个 server，配置了多个虚拟主机。</p>
+</blockquote>
+
+<ul>
+  <li>
+    <p>添加虚拟主机：</p>
+
+    <ol>
+      <li>
+        <p>复制一份 html 文件夹</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cp</span> <span class="nt">-r</span> html html81
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>修改 html81 中的 index.html</p>
+      </li>
+      <li>
+        <p>修改 nginx 的配置文 nginx.conf 件如下:</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>worker_processes  1<span class="p">;</span>
+events <span class="o">{</span>
+    worker_connections  1024<span class="p">;</span>
+<span class="o">}</span>
+     
+     
+http <span class="o">{</span>
+    include       mime.types<span class="p">;</span>
+    default_type  application/octet-stream<span class="p">;</span>
+     
+    sendfile        on<span class="p">;</span>
+         
+    keepalive_timeout  65<span class="p">;</span>
+     
+    server <span class="o">{</span>
+        listen       80<span class="p">;</span>
+        server_name  localhost<span class="p">;</span>
+     
+        location / <span class="o">{</span>
+            root   html<span class="p">;</span>
+            index  index.html index.htm<span class="p">;</span>
+        <span class="o">}</span>
+     
+        error_page   500 502 503 504  /50x.html<span class="p">;</span>
+        location <span class="o">=</span> /50x.html <span class="o">{</span>
+            root   html<span class="p">;</span>
+        <span class="o">}</span>
+     
+    <span class="o">}</span>
+         
+    <span class="c"># 一个 server 节点就是一个虚拟主机</span>
+    server <span class="o">{</span>
+        listen       81<span class="p">;</span>
+        server_name  localhost<span class="p">;</span>
+     
+        location / <span class="o">{</span>
+            root   html81<span class="p">;</span>
+            index  index.html index.htm<span class="p">;</span>
+        <span class="o">}</span>
+     
+    <span class="o">}</span>
+     
+<span class="o">}</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>重新加载配置文件</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>sbin/nginx <span class="nt">-s</span> reload
+</code></pre></div>        </div>
+      </li>
+    </ol>
+  </li>
+</ul>
+
+<h4 id="142-通过域名区分虚拟主机">1.4.2 通过域名区分虚拟主机</h4>
+
+<ul>
+  <li>
+    <p>域名就是网站。</p>
+
+    <pre><code class="language-txt">www.baidu.com
+www.taobao.com
+www.jd.com
+</code></pre>
+  </li>
+  <li>
+    <p>Dns 服务器：把域名解析为 ip 地址。保存的就是域名和 ip 的映射关系。</p>
+
+    <pre><code class="language-txt"># 一级域名： 
+		Baidu.com
+		Taobao.com
+		Jd.com
+# 二级域名： 
+    www.baidu.com
+		Image.baidu.com
+		Item.baidu.com
+# 三级域名： 
+		1.Image.baidu.com
+		Aaa.image.baidu.com
+</code></pre>
+
+    <blockquote>
+      <p>一个域名对应一个 ip 地址，一个 ip 地址可以被多个域名绑定。</p>
+    </blockquote>
+  </li>
+</ul>
+
+<h3 id="15-反向代理">1.5 反向代理</h3>
+
+<h4 id="151-反向代理">1.5.1 反向代理</h4>
+
+<ul>
+  <li>
+    <p>正向代理是在用户端。比如需要访问国外的网站，就需要VPN服务器将我们的IP地址变成国外的地址。</p>
+  </li>
+  <li>
+    <p>正向代理服务器位于客户端和服务器之间，为了向服务器获取数据，客户端要向代理服务器发送一个请求，并指定目标服务器，代理服务器将目标服务器返回的数据转交给客户端。这里客户端要进行一些正向代理的设置。</p>
+
+    <p><img src="/img/images/nginx/00/02-正向代理.png" /></p>
+  </li>
+</ul>
+
+<h4 id="152-反向代理">1.5.2 反向代理</h4>
+
+<ul>
+  <li>
+    <p>反向代理，其实客户端对代理是无感知的，因为客户端不需要任何配置就可以访问，我们只需要将请求发送到反向代理服务器，由反向代理服务器去选择目标服务器获取数据后，在返回给客户端，此时反向代理服务器和目标服务器对外就是一个服务器，暴露的是代理服务器地址，隐藏了真实服务器IP地址。</p>
+
+    <p><img src="/img/images/nginx/00/03-反向代理.png" /></p>
+  </li>
+</ul>
+
+<h4 id="153-nginx-实现反向代理">1.5.3 Nginx 实现反向代理</h4>
+
+<p>两个域名指向同一台 nginx 服务器，用户访问不同的域名显示不同的网页内容。 两个域名是 www.sian.com.cn 和 www.sohu.com</p>
+
+<ol>
+  <li>
+    <p>安装两个 tomcat，分别运行在 8080 和 8081 端口。</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim  /home/silhouette/apache-tomcat-8.5.38-2/conf/server.xml
+</code></pre></div>    </div>
+
+    <blockquote>
+      <p>注意：需要修改http访问端口（默认为8080端口）、监听tomcat关闭的端口（默认为8005）、负责接收其他http服务器的请求端口（默认为8009）。</p>
+    </blockquote>
+  </li>
+  <li>
+    <p>修改两个tomcat的首页内容，启动两个 tomcat。</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim /home/silhouette/apache-tomcat-8.5.38-2/webapps/ROOT/index.jsp
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>反向代理服务器的配置</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>upstream tomcat1<span class="o">{</span>
+        server    192.168.30.77:8888<span class="p">;</span>
+<span class="o">}</span>
+server <span class="o">{</span>
+      listen    80<span class="p">;</span>
+      server_name   8888.silhouette.com<span class="p">;</span>
+   
+      location / <span class="o">{</span>
+           proxy_pass     http://tomcat1<span class="p">;</span>
+           index index.html index.htm<span class="p">;</span>
+      <span class="o">}</span>
+<span class="o">}</span>
+   
+upstream tomcat2<span class="o">{</span>
+        server    192.168.30.77:8080<span class="p">;</span>
+<span class="o">}</span>
+server <span class="o">{</span>
+      listen    80<span class="p">;</span>
+      server_name   8080.silhouette.com<span class="p">;</span>
+   
+      location / <span class="o">{</span>
+           proxy_pass     http://tomcat2<span class="p">;</span>
+           index index.html index.htm<span class="p">;</span>
+      <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>nginx重新加载配置文件</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>./nginx <span class="nt">-s</span> reload
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>配置域名：在hosts文件中添加域名和ip的映射关系</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim /etc/hosts
+<span class="c">####添加条目,如下:</span>
+192.168.30.77  8081.silhouette.com
+192.168.30.77  8080.silhouette.com
+</code></pre></div>    </div>
+
+    <blockquote>
+      <p>注意：配置域名与IP的映射是在宿主机上，而不是在虚拟机上</p>
+    </blockquote>
+  </li>
+</ol>
+
+:ET
