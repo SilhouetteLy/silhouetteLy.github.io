@@ -1,0 +1,660 @@
+I"Xs<h2 id="前言">前言</h2>
+
+<p>上回书我们详细的了解了 Nginx 配置文件的语法及Nginx 的原理，那么书接上回，Nginx在实际生产中有哪些实际用法呢？现在，就让我们去实操一下 nginx 在实际生产的一些常用案例。下面是本博客所参考链接：</p>
+
+<ul>
+  <li><a href="https://www.cnblogs.com/arjenlee/p/9256835.html">Nginx负载均衡高可用</a></li>
+</ul>
+
+<h2 id="一nginx-配置实例">一、Nginx 配置实例</h2>
+
+<h3 id="11-反向代理">1.1 反向代理</h3>
+
+<h4 id="112-示例1">1.1.2 示例1</h4>
+
+<ul>
+  <li>
+    <p>需求分析：使用 nginx 反向代理，访问www.1234567.com 直接跳转到虚拟机的 tomcat 主页面中</p>
+  </li>
+  <li>
+    <p>实现步骤</p>
+
+    <ol>
+      <li>
+        <p>在 Linux 系统安装 tomcat ，使用默认端口 8080 启动 tomcat 服务器</p>
+      </li>
+      <li>
+        <p>查看对外访问的端口</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>firewall-cmd <span class="nt">--add-port</span><span class="o">=</span>8080/tcp <span class="nt">--permanent</span>
+<span class="nv">$ </span>firewall-cmd <span class="nt">-reload</span>
+<span class="c">#查看已经开放的端口号</span>
+<span class="nv">$ </span>firewall-cmd <span class="nt">--list-all</span>
+<span class="c"># 重启防火墙</span>
+<span class="nv">$ </span>firewall-cmd –reload
+</code></pre></div>        </div>
+
+        <blockquote>
+          <p>注意：如果防火墙服务已经关闭，则可以省略这一步</p>
+        </blockquote>
+      </li>
+      <li>
+        <p>修改本地 host 文件，将 www.1234567.com 映射 到虚拟机tomcat主页中 192.168.0.109:8080</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">sudo </span>su
+<span class="nv">$ </span>vim /etc/hosts
+<span class="c"># 添加IP 和域名的映射</span>
+192.168.0.109    www.1234567.com
+</code></pre></div>        </div>
+
+        <blockquote>
+          <p>Tips：当我们在浏览器中输入一个域名时，它是先去我们本地的<code class="highlighter-rouge">host</code>文件中找配置域名映射的IP地址配置，如果没找到，就去网络找<code class="highlighter-rouge">DNS域名解析服务器</code>，找网络中IP。</p>
+        </blockquote>
+      </li>
+      <li>
+        <p>在<code class="highlighter-rouge">nginx.conf</code>配置文件中添加如下配置</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim /usr/local/nginx/nginx.conf
+<span class="c"># 添加代码如下</span>
+server <span class="o">{</span>
+	listen		80<span class="p">;</span>
+	server_name	www.1234567.com<span class="p">;</span>
+     	
+	location /<span class="o">{</span>
+		proxy_pass    http://192.168.0.109:8080<span class="p">;</span>
+		index index.html index.htm. index.jsp<span class="p">;</span>
+	<span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>在浏览器中进行访问测试</p>
+
+        <p><img src="/img/images/nginx/02/01-反向代理.png.png" /></p>
+      </li>
+    </ol>
+  </li>
+</ul>
+
+<h4 id="112-实例二">1.1.2 实例二</h4>
+
+<ul>
+  <li>
+    <p>实现效果：</p>
+
+    <ul>
+      <li>使用 nginx 反向代理，根据访问的路径跳转到不同端口的服务中，nginx 监听端口为 9001</li>
+      <li>访问 http://192.168.0.109/edu/ 直接跳转到 192.168.109:8081</li>
+      <li>访问 http://192.168.0.109/vod/ 直接跳转到 192.168.109:8082</li>
+    </ul>
+  </li>
+  <li>
+    <p>实现步骤</p>
+
+    <ol>
+      <li>
+        <p>准备两个tomcat ，一个 8081端口，一个8082 端口，并准备好测试页面</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cp</span> <span class="nt">-r</span> apache-tomcat-8.5.38 tomcat1
+<span class="nv">$ </span><span class="nb">cp</span> <span class="nt">-r</span> apache-tomcat-8.5.38 tomcat2
+<span class="nv">$ </span>vim /home/silhouette/tomcat1/conf/server.xml
+<span class="nv">$ </span><span class="nb">cd</span> /home/silhouette/tomcat1/webapps/ROOT
+<span class="nv">$ </span><span class="nb">mkdir </span>edu
+<span class="nv">$ </span>vim index.jsp
+<span class="nv">$ </span>vim /home/silhouette/tomcat2/conf/server.xml
+<span class="nv">$ </span><span class="nb">cd</span> /home/silhouette/tomcat2/webapps/ROOT
+<span class="nv">$ </span><span class="nb">mkdir </span>vod
+<span class="nv">$ </span>vim index.jsp
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>修改 nginx 的配置文件，进行反向代理设置</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim /usr/local/nginx/nginx.conf
+<span class="c"># 添加代码如下</span>
+server <span class="o">{</span>
+	listen       9001<span class="p">;</span>
+	server_name   192.168.0.109<span class="p">;</span>
+     	
+	location   ~/edu/ <span class="o">{</span>
+		proxy_pass   http://192.168.0.109:8081<span class="p">;</span>
+	<span class="o">}</span>
+	location   ~/vod/ <span class="o">{</span>
+		proxy_pass   http://192.168.0.109:8082<span class="p">;</span>
+	<span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>开放9001、8081、8082端口</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 查看已经开放的端口号</span>
+<span class="nv">$ </span>firewall-cmd <span class="nt">--list-all</span>
+<span class="c"># 对外开放访问的端口</span>
+<span class="nv">$ </span>firewall-cmd <span class="nt">--add-service</span><span class="o">=</span>http <span class="nt">--permanent</span>
+<span class="nv">$ </span>firewall-cmd <span class="nt">--add-port</span><span class="o">=</span>9001/tcp <span class="nt">--permannent</span>
+</code></pre></div>        </div>
+
+        <blockquote>
+          <p>Tips：如果防火墙服务已经关闭，该步操作可省</p>
+        </blockquote>
+      </li>
+      <li>
+        <p>在浏览器中进行测试，效果如图</p>
+
+        <p><img src="/img/images/nginx/02/02-反向代理示例2.png" /></p>
+      </li>
+    </ol>
+  </li>
+</ul>
+
+<h3 id="12-负载均衡">1.2 负载均衡</h3>
+
+<h4 id="121-负载均衡概述">1.2.1 负载均衡概述</h4>
+
+<ul>
+  <li>
+    <p><code class="highlighter-rouge">负载均衡</code>：增加服务器的数量，然后将请求分发到各个服务器上，将原先请求集中到单个服务器上的情况改为将请求分发到多个服务器上，<code class="highlighter-rouge">将负载分发到不同的服务器，也就是我们所说的负载均衡。</code></p>
+  </li>
+  <li>
+    <p>图解负载均衡</p>
+
+    <p><img src="/img/images/nginx/02/03-负载均衡.png" /></p>
+  </li>
+</ul>
+
+<h4 id="122-负载均衡的实现">1.2.2 负载均衡的实现</h4>
+
+<ul>
+  <li>
+    <p>实现效果</p>
+
+    <ul>
+      <li>浏览器地址输入<code class="highlighter-rouge">http://192.168.0.108/edu/index.jsp</code>，负载均衡效果，平均8081和8082端口中</li>
+    </ul>
+  </li>
+  <li>
+    <p>实现步骤</p>
+
+    <ol>
+      <li>
+        <p>准备两台 tomcat 服务器，一台 8081 ，一台8082</p>
+      </li>
+      <li>
+        <p>在两台 tomcat 里面的 webapps 目录中，创建名称为 edu文件夹，在 edu 文件夹中创建页面index.jsp，用于测试访问</p>
+      </li>
+      <li>
+        <p>在 nginx 的配置文件中进行负载均衡的配置</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim /usr/local/nginx/nginx.conf
+<span class="c"># 添加代码如下</span>
+upstream myserver <span class="o">{</span>
+		server 192.168.0.108:8081<span class="p">;</span>
+		server 192.168.0.108:8082<span class="p">;</span> 
+<span class="o">}</span>
+     
+server <span class="o">{</span>
+	listen       9002<span class="p">;</span>
+	server_name   192.168.0.108<span class="p">;</span>
+     	
+	location   / <span class="o">{</span>
+		proxy_pass   http://myserver<span class="p">;</span>
+		proxy_connect_timeout     10<span class="p">;</span>
+	<span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>测试运行</p>
+
+        <p><img src="/img/images/nginx/02/04-负载均衡效果图.png" /></p>
+      </li>
+    </ol>
+  </li>
+  <li>
+    <p>负载均衡的策略：</p>
+
+    <ul>
+      <li>Nginx 提供了还集中分配策略，上例采用的是<code class="highlighter-rouge">轮询(默认)</code>的方式，其他用法请查看<a href="">传送门</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="13-动静分离">1.3 动静分离</h3>
+
+<h4 id="131-动静分离概述">1.3.1 动静分离概述</h4>
+
+<p>Nginx 动静分离简单来说就是把动态和静态请求分开，不能理解成只是单纯的把动态页面和静态页面物理分离。严格意义上说就是动态请求更静态请求分开，可以理解成使用 Nginx 处理静态页面， Tomcat 处理动态页面。动静分离从目前来看大致分为两种：</p>
+
+<ul>
+  <li>
+    <p>一种是纯粹把静态文件独立成单独的域名，放在独立的服务器上，也是目前主流推崇的方案</p>
+
+    <p><img src="/img/images/nginx/02/05-静态分离原理.png" /></p>
+  </li>
+  <li>
+    <p>另一种是就是动态和静态文件混合在一起发布，通过 nginx  来分开。</p>
+  </li>
+</ul>
+
+<p>通过<code class="highlighter-rouge">location</code>指定不同的后缀名实现不同的请求转发。通过<code class="highlighter-rouge">expires</code>参数设置，可以使浏览器缓存过期时间，减少与服务器之间的请求和流量。具体<code class="highlighter-rouge">Expires</code>定义：是给一个资源设定一个过期时间，也就是说无需去服务端验证，直接通过浏览器自身确认是否过期即可，所以不会产生额外的流量。此种方法非常适合不经常变动的资源。(如果经常更新的文件，不建议使用<code class="highlighter-rouge">Expires</code>来缓存)。</p>
+
+<p>如：我们这里设置 3d，表示在这 3天之内访问这个 URL ，发送一个请求，比对服务器该文件最后更新时间没有变化，则不会从服务器抓取，返回状态码 304，如果有修改，则直接从服务器重新下载，返回状态码 200。</p>
+
+<h4 id="132-实现步骤">1.3.2 实现步骤</h4>
+
+<ol>
+  <li>
+    <p>静态资源准备</p>
+
+    <p><img src="/img/images/nginx/02/06-静态资源准备.png" /></p>
+  </li>
+  <li>
+    <p>进行 nginx 配置</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim /usr/local/nginx/nginx.conf
+<span class="c"># 添加代码如下</span>
+server <span class="o">{</span>
+	listen	    9003<span class="p">;</span>
+	server_name  192.168.0.108<span class="p">;</span>
+     	
+   location /html/ <span class="o">{</span>
+   		root /home/silhouette/static-file/<span class="p">;</span>
+   		<span class="c"># 列出目录下的文件</span>
+   		autoindex  on<span class="p">;</span>
+   		index index.html index.htm<span class="p">;</span>
+   <span class="o">}</span>
+   location /image/<span class="o">{</span>
+   		root /home/silhouette/static-file/<span class="p">;</span>
+   		index index.html index.htm<span class="p">;</span>
+   <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>在浏览器器中输入地址，查看效果</p>
+
+    <p><img src="/img/images/nginx/02/07-静态分离效果图.png" /></p>
+  </li>
+</ol>
+
+<h3 id="14-nginx搭建高可用集群">1.4 Nginx搭建高可用集群</h3>
+
+<h4 id="141-什么是负载均衡高可用">1.4.1 什么是负载均衡高可用</h4>
+
+<p>Nginx 作为负载均衡器，所有请求都到了ngxin ，可见nginx 处于非常重要的位置，如果 nginx 服务器宕机后端 web 服务将无法提供服务，影响严重。</p>
+
+<p>为了屏蔽负载均衡服务器的宕机，需要建立一个备份机。主服务器和备份机都运行在高可用(High Availability)监控程序，通过传送诸如 “I am alive” 这样的信息来监控对方的运行状况。当备份机不能在一定的时间内收到这样的信息时，它就接管主服务器的IP 并继续提供负载均衡服务；当备份管理器又从主管理器收到“I am alive”这样的信息时，它就释放 IP地址，这样的主服务就开始再次提供负载均衡服务。</p>
+
+<ul>
+  <li>
+    <p>高可用原理图</p>
+
+    <p><img src="/img/images/nginx/02/08-高可用.png" /></p>
+  </li>
+  <li>
+    <p>搭建环境需求</p>
+
+    <ul>
+      <li>需要两台 nginx 服务器</li>
+      <li>需要keepalived</li>
+      <li>需要虚拟 IP</li>
+    </ul>
+  </li>
+</ul>
+
+<h4 id="142-什么是-keepalived">1.4.2 什么是 keepalived</h4>
+
+<ul>
+  <li>
+    <p>简介</p>
+
+    <ul>
+      <li><code class="highlighter-rouge">keepalived是集群管理中保证集群高可用的一个服务软件，用来防止单点故障</code></li>
+      <li>Keepalived 的作用是检测 web 服务器的状态，如果有一台 web 服务器死机，或工作出现故障，Keepalived 将检测到，并将有故障的 web 服务器从系统中剔除，当 web 服务器工作正常后 Keepalived 自动将 web 服务器加入到服务器群中，这些工作全部自动完成，不需要人工干涉，需要人工做的只是修复故障的 web 服务器</li>
+    </ul>
+  </li>
+  <li>
+    <p>Keepalived 工作原理</p>
+
+    <ul>
+      <li>Keepalied 是以 VRRP(Virtual Router Redundancy Protocol，即虚拟路由冗余协议) 协议为实现基础的</li>
+      <li>虚拟路由协议，可以认为是实现路由器高可用的协议，即将 N 台提供相同功能的路由器组成一个路由器组，这个组里面有一个 master 和多个 backup，master 上面有一个对外提供服务的 vip (Virtual IP Address，虚拟IP 地址，该路由器所在局域网内其他机器的默认路由为该 vip) ，master 会分组播，当backup 手不到 VRRP 包时就认为 master 宕 掉了，这时就需要根据 VRRP 的优先级来选举一个 backup 当master。这样的话就可以保证路由器的高可用了。</li>
+      <li>Keepalived 主要有三个模块，分别是 core、check和 VRRP。core 模块为keepalived 的核心，负责主进程的启动、维护以及全局配置文件的家在和解析。check 负责健康检查，包括常见的各种检查方式。VRRP 模块是用来实现 VRRP 协议的。</li>
+    </ul>
+  </li>
+  <li>
+    <p>安装步骤</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 关闭防火墙</span>
+<span class="nv">$ </span>systemctl stop firewalld
+<span class="c"># //关闭 selinux，重启生效</span>
+<span class="nv">$ </span><span class="nb">sed</span> <span class="nt">-i</span> <span class="s1">'s/^SELINUX=.*/SELINUX=disabled/'</span> /etc/sysconfig/selinux
+<span class="c"># 关闭 selinux，临时生效</span>
+<span class="nv">$ </span>setenforce 0
+<span class="c"># 时间同步</span>
+<span class="nv">$ </span>ntpdate 0.centos.pool.ntp.org
+<span class="nv">$ </span> yum <span class="nb">install</span> <span class="nt">-y</span> keepalived
+<span class="c"># 查看安装版本</span>
+<span class="nv">$ </span> rpm <span class="nt">-q</span> <span class="nt">-a</span> keepalived
+<span class="c"># 安装路径 </span>
+<span class="nv">$ </span>vim /etc/keepalived/keepalived.conf
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p><code class="highlighter-rouge">keepalived.conf</code>详解</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 全局定义</span>
+global_defs <span class="o">{</span>
+   notification_email <span class="o">{</span>    <span class="c">#指定keepalived在发生切换时需要发送email到的对象，一行一个</span>
+     acassen@firewall.loc
+     failover@firewall.loc
+     sysadmin@firewall.loc
+   <span class="o">}</span>
+   notification_email_from Alexandre.Cassen@firewall.loc    <span class="c">#指定发件人</span>
+   smtp_server 192.168.200.1											<span class="c">#指定smtp服务器地址</span>
+   smtp_connect_timeout 30													 <span class="c">#指定smtp连接超时时间</span>
+   router_id LVS_DEVEL <span class="c">#运行keepalived机器的一个标识</span>
+<span class="o">}</span>
+  
+vrrp_script chk_http_port <span class="o">{</span>
+		script <span class="s2">"/usr/local/src/nginx_check.sh"</span>
+		interval 2    <span class="c">#（检测脚本执行的间隔）</span>
+		weight 2
+<span class="o">}</span>
+  
+vrrp_instance VI_1 <span class="o">{</span>
+    state MASTER  		<span class="c"># 备份服务器上将 MASTER 改为 BACKUP</span>
+    interface enp0s3    <span class="c"># 网卡,使用 ip addr 指令查看</span>
+    virtual_router_id 51  <span class="c"># 主、备机的 virtual_router_id 必须相同</span>
+    priority 100					<span class="c"># 主、备机取不同的优先级，主机值较大，备份机值较小</span>
+    advert_int 1					<span class="c">#MASTER与BACKUP负载均衡器之间同步检查的时间间隔，单位是秒</span>
+    authentication <span class="o">{</span>     <span class="c">#设置认证</span>
+        auth_type PASS   <span class="c">#主从服务器验证方式</span>
+        auth_pass 1111
+    <span class="o">}</span>
+    virtual_ipaddress <span class="o">{</span>    <span class="c">#设置vip</span>
+        192.168.0.200 <span class="c"># VRRP H 虚拟地址（虚拟IP）,可以多个虚拟IP，换行即可</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>检测 Nginx 的脚本文件<code class="highlighter-rouge">nginx_check.sh</code></p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#!/bin/bash </span>
+<span class="nv">A</span><span class="o">=</span><span class="sb">`</span>ps <span class="nt">-C</span> nginx –no-header |wc <span class="nt">-l</span><span class="sb">`</span> 
+<span class="k">if</span> <span class="o">[</span> <span class="nv">$A</span> <span class="nt">-eq</span> 0 <span class="o">]</span><span class="p">;</span><span class="k">then</span> 
+		/usr/local/nginx/sbin/nginx 
+		<span class="nb">sleep </span>2 
+		<span class="k">if</span> <span class="o">[</span> <span class="sb">`</span>ps <span class="nt">-C</span> nginx <span class="nt">--no-header</span> |wc <span class="nt">-l</span><span class="sb">`</span> <span class="nt">-eq</span> 0 <span class="o">]</span><span class="p">;</span><span class="k">then 
+				</span>killall keepalived 
+		<span class="k">fi 
+fi</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h4 id="143-keepalived--nginx-实现主备过程主从模式">1.4.3 keepalived + nginx 实现主备过程(主从模式)</h4>
+
+<ol>
+  <li>
+    <p>修改 /etc/keepalived/keepalived.conf</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>global_defs <span class="o">{</span>
+   notification_email <span class="o">{</span>
+     acassen@firewall.loc
+     failover@firewall.loc
+     sysadmin@firewall.loc
+   <span class="o">}</span>
+   notification_email_from Alexandre.Cassen@firewall.loc
+   smtp_server 192.168.200.1
+   smtp_connect_timeout 30
+   router_id LVS_DEVEL  
+<span class="o">}</span>
+   
+vrrp_script chk_http_port <span class="o">{</span>
+                script <span class="s2">"/usr/local/src/nginx_check.sh"</span>
+                interval 2    
+                weight 2
+<span class="o">}</span>
+   
+vrrp_instance VI_1 <span class="o">{</span>
+    state MASTER                
+    interface enp0s3    
+    virtual_router_id 51  
+    priority 100
+    advert_int 1
+    authentication <span class="o">{</span>
+        auth_type PASS
+        auth_pass 1111
+    <span class="o">}</span>
+    virtual_ipaddress <span class="o">{</span>
+        192.168.0.200    <span class="c"># 虚拟IP</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>在/usr/local/src/ 路径下添加一个监听 nginx脚本，脚本代码如上<code class="highlighter-rouge">nginx_check.sh</code></p>
+  </li>
+  <li>
+    <p>把两台 服务器上的 nginx 和keepalived 启动</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cd</span> /usr/local/nginx/sbin/
+<span class="nv">$ </span>./nginx
+<span class="c"># 启动 keepalived</span>
+<span class="nv">$ </span>systemctl start keepalived.service
+<span class="c"># 加入开机自启动</span>
+<span class="nv">$ </span>systemctl <span class="nb">enable </span>keepalived
+</code></pre></div>    </div>
+
+    <p><img src="/Users/silhouette/note/Server/Nginx/images/02/09-启动keepalived.png" alt="09-启动keepalived" style="zoom:50%;" /></p>
+
+    <p><img src="/img/images/nginx/00/01-安装成功后的目录.png" /></p>
+  </li>
+  <li>
+    <p>测试运行</p>
+
+    <ol>
+      <li>
+        <p>在浏览器地址栏中输入 虚拟IP地址 192.168.0.200</p>
+
+        <p><img src="/Users/silhouette/note/Server/Nginx/images/02/10-高可用测试1.png" alt="10-高可用测试1" style="zoom:50%;" /></p>
+
+        <p><img src="/img/images/nginx/00/01-安装成功后的目录.png" /></p>
+
+        <p>通过<code class="highlighter-rouge">ip addr</code>可以查看绑定的虚拟IP，vip绑定在主nginx的<code class="highlighter-rouge">enp0s3</code>上</p>
+
+        <p><img src="/Users/silhouette/note/Server/Nginx/images/02/11-IP查看是否绑定.png" alt="11-IP查看是否绑定" style="zoom:50%;" /></p>
+
+        <p><img src="/img/images/nginx/00/01-安装成功后的目录.png" /></p>
+      </li>
+      <li>
+        <p>把主服务器(192.168.0.107)的 nginx 和 keepalived 停掉再访问 192.168.0.200，发现访问正常</p>
+
+        <ul>
+          <li>
+            <p>查看主备 IP，此时备节点不会有 VIP（只有当主挂了的时候，VIP 才会飘到备节点）</p>
+
+            <p><img src="/Users/silhouette/note/Server/Nginx/images/02/12-备分级vip飘逸.png" alt="12-备分级vip飘逸" style="zoom:50%;" /></p>
+
+            <p><img src="/img/images/nginx/00/01-安装成功后的目录.png" /></p>
+          </li>
+          <li>
+            <p>将主nginx的keepalived和nginx都启动，再次查看主备 IP，发现vip漂移到主nginx</p>
+          </li>
+        </ul>
+
+        <blockquote>
+          <p>注意：主 nginx 恢复时一定要将nginx 也启动（通常 nginx 启动要加在开机启动中），否则即使 vip漂移到主nginx也无法访问。</p>
+        </blockquote>
+      </li>
+    </ol>
+  </li>
+</ol>
+
+<h4 id="144-keepalived--nginx-实现高可用集群双主模式">1.4.4 keepalived + nginx 实现高可用集群(双主模式)</h4>
+
+<p>上面我们实现了 keepalived + nginx 高可用的主从模式，这种模式的的优点是有一个备份机，当主机宕机时，备份机就自动接管主服务器的IP 并继续提供负载均衡服务。但是要是我主机没有发生故障，那么备份机就会被闲置，从而造成浪费。因此，为了避免备份机的闲置造成的浪费，从而推出了 <code class="highlighter-rouge">keepalived +nginx 的双主模式</code>，集群架构图如下：</p>
+
+<p><img src="/Users/silhouette/note/Server/Nginx/images/02/13-双主模式.png" alt="13-双主模式" style="zoom:50%;" /></p>
+
+<p><img src="/img/images/nginx/00/01-安装成功后的目录.png" /></p>
+
+<p>由上图可知，只需要修改上述示例中keepalived 服务的配置文件即可。此时此时LB-01 节点即为 Keepalived 的主节点也为备节点，LB-02 节点同样即为 Keepalived 的主节点也为备节点。LB-01 节点默认的主节点 VIP（192.168.1.110），LB-02 节点默认的主节点 VIP（192.168.1.210）</p>
+
+<ul>
+  <li>
+    <p>实现步骤</p>
+
+    <ol>
+      <li>
+        <p>配置 LB-01 节点</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim /etc/keepalived/keepalived.conf
+<span class="c"># /编辑配置文件，增加一段新的vrrp_instance 规则</span>
+<span class="o">!</span> Configuration File <span class="k">for </span>keepalived
+     
+global_defs <span class="o">{</span>
+   notification_email <span class="o">{</span>
+     acassen@firewall.loc
+     failover@firewall.loc
+     sysadmin@firewall.loc
+   <span class="o">}</span>
+   notification_email_from Alexandre.Cassen@firewall.loc
+   smtp_server 192.168.200.1
+   smtp_connect_timeout 30
+   router_id LVS_DEVEL
+<span class="o">}</span>
+     
+vrrp_script chk_http_port <span class="o">{</span>
+                script <span class="s2">"/usr/local/src/nginx_check.sh"</span>
+                interval 2
+                weight 2
+<span class="o">}</span>
+     
+vrrp_instance VI_1 <span class="o">{</span>
+    state MASTER
+    interface enp0s3
+    virtual_router_id 51
+    priority 100
+    advert_int 1
+    authentication <span class="o">{</span>
+        auth_type PASS
+        auth_pass 1111
+    <span class="o">}</span>
+    virtual_ipaddress <span class="o">{</span>
+        192.168.0.200
+    <span class="o">}</span>
+<span class="o">}</span>
+     
+vrrp_instance VI_2 <span class="o">{</span>
+	state BACKUP
+	interface enp0s3
+	virtual_router_id 52
+	priority 99
+	advert_int 1
+	authentication <span class="o">{</span>
+			auth_type PASS
+			auth_pass 2222
+	<span class="o">}</span>
+	virtual_ipaddress <span class="o">{</span>
+			192.168.0.210
+	<span class="o">}</span>
+<span class="o">}</span>
+<span class="c"># 重新启动 keepalived</span>
+<span class="nv">$ </span>systemctl restart keepalived
+</code></pre></div>        </div>
+
+        <ul>
+          <li>
+            <p>查看 LB-01 节点的 IP 地址，发现 VIP（192.168.0.109）同样还是默认在该节点</p>
+
+            <p><img src="/Users/silhouette/note/Server/Nginx/images/02/14-双主模式1.png" alt="14-双主模式1" style="zoom:50%;" /></p>
+
+            <p><img src="/img/images/nginx/00/01-安装成功后的目录.png" /></p>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <p>配置 LB-02 节点</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim /etc/keepalived/keepalived.conf
+<span class="c"># //编辑配置文件，增加一段新的 vrrp_instance 规则</span>
+global_defs <span class="o">{</span>
+   notification_email <span class="o">{</span>
+     acassen@firewall.loc
+     failover@firewall.loc
+     sysadmin@firewall.loc
+   <span class="o">}</span>
+   notification_email_from Alexandre.Cassen@firewall.loc
+   smtp_server 192.168.200.1
+   smtp_connect_timeout 30
+   router_id LVS_DEVEL
+<span class="o">}</span>
+     
+vrrp_script chk_http_port <span class="o">{</span>
+                script <span class="s2">"/usr/local/src/nginx_check.sh"</span>
+                interval 2
+                weight 2
+<span class="o">}</span>
+     
+vrrp_instance VI_1 <span class="o">{</span>
+    state BACKUP
+    interface enp0s3
+    virtual_router_id 51
+    priority 99
+    advert_int 1
+    authentication <span class="o">{</span>
+        auth_type PASS
+        auth_pass 1111
+    <span class="o">}</span>
+    virtual_ipaddress <span class="o">{</span>
+        192.168.0.200
+    <span class="o">}</span>
+<span class="o">}</span>
+     
+vrrp_instance VI_2 <span class="o">{</span>
+		state MASTER
+		interface enp0s3
+		virtual_router_id 52
+		priority 100
+		advert_int 1
+		authentication <span class="o">{</span>
+			auth_type PASS
+			auth_pass 2222
+		<span class="o">}</span>
+		virtual_ipaddress <span class="o">{</span>
+				192.168.0.210
+		<span class="o">}</span>
+<span class="o">}</span>
+<span class="c"># 重新启动 keepalived</span>
+<span class="nv">$ </span>systemctl restart keepalived
+</code></pre></div>        </div>
+
+        <ul>
+          <li>
+            <p>查看 LB-02 节点 IP，会发现也多了一个 VIP（192.168.0.110），此时该节点也就是一个主了。</p>
+
+            <p><img src="/Users/silhouette/note/Server/Nginx/images/02/15-双主模式2.png" alt="15-双主模式2" style="zoom:50%;" /></p>
+
+            <p><img src="/img/images/nginx/00/01-安装成功后的目录.png" /></p>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <p>测试1</p>
+
+        <p><img src="/Users/silhouette/note/Server/Nginx/images/02/16-双主模式测试.png" alt="16-双主模式测试" style="zoom:50%;" /></p>
+
+        <p><img src="/img/images/nginx/00/01-安装成功后的目录.png" /></p>
+      </li>
+    </ol>
+  </li>
+</ul>
+
+<blockquote>
+  <p>Tips: 测试可以发现我们访问 keepalived 中配置的两个 VIP 都可以正常调度等，当我们停止任意一台 keepalived节点，同样还是正常访问；到此，keepalived+nginx 高可用集群（双主模式）就搭建完成了。</p>
+</blockquote>
+:ET

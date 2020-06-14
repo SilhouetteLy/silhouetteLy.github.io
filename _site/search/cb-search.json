@@ -3,6 +3,22 @@
 	"data" : [
 	 
 	{
+		"title" : "02_Nginx配置示例 - Nginx,_Keepalived",
+		"url" : "/2020/06/14/nginx02/"
+	}
+	
+	,
+	
+    
+	{
+		"title" : "01_Nginx配置文件详解 - Nginx",
+		"url" : "/2020/06/12/nginx01/"
+	}
+	
+	,
+	
+    
+	{
 		"title" : "FastDFS初识 - FastDFS",
 		"url" : "/2020/06/10/fasrDFS00/"
 	}
@@ -11,7 +27,7 @@
 	
     
 	{
-		"title" : "Nginx初识 - Nginx",
+		"title" : "00_Nginx初识 - Nginx",
 		"url" : "/2020/06/09/nginx00/"
 	}
 	

@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Read well,and strive well for those wuh like it.">
+    <meta name="keyword"  content="">
+    <link rel="shortcut icon" href="/img/favicon.ico">
+
+    <title>01_Nginx配置文件详解 - Silhouette's Blog</title>
+
+    <link rel="canonical" href="http://localhost:4000/2020/06/12/nginx01/">
+
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/hux-blog.min.css"> 
+    <link rel="stylesheet" href="/css/silhouette.css">
+    <!-- Pygments Github CSS -->
+    <link rel="stylesheet" href="/css/syntax.css">
+
+    <!-- Custom Fonts -->
+    <!-- <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css"> -->
+    <!-- Hux change font-awesome CDN to qiniu -->
+    <link href="http://cdn.staticfile.org/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+    <!--jekyll Search-->
+    <link rel="stylesheet" href="/search/css/cb-search.css">
+    <!-- Hux Delete, sad but pending in China
+    <link href='http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/
+    css'>
+    -->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- ga & ba script hoook -->
+    <script></script>
+</head>
+
+
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="">
+
+    <!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">Silhouette's Blog</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <!-- Known Issue, found by Hux:
+            <nav>'s height woule be hold on by its content.
+            so, when navbar scale out, the <nav> will cover tags.
+            also mask any touch event of tags, unfortunately.
+        -->
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/about/">About</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/tags/">Tags</a>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    $toggle.addEventListener('click', handleMagic)
+    function handleMagic(e){
+        if ($navbar.className.indexOf('in') > 0) {
+        // CLOSE
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        }else{
+        // OPEN
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+</script>
+
+
+    <!-- Image to hack wechat -->
+<!-- <img src="/img/icon_wechat.png" width="0" height="0"> -->
+<!-- <img src="/img/images/nginx/01/00-post-bg.jpeg" width="0" height="0"> -->
+
+<!-- Post Header -->
+<style type="text/css">
+    header.intro-header{
+        background-image: url('/img/images/nginx/01/00-post-bg.jpeg')
+    }
+</style>
+<header class="intro-header" >
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                        <a class="tag" href="/tags/#Nginx" title="Nginx">Nginx</a>
+                        
+                    </div>
+                    <h1>01_Nginx配置文件详解</h1>
+                    
+                    
+                    <h2 class="subheading">Nginx 服务器的各种配置指令的作用和用法。</h2>
+                    
+                    <span class="meta">Posted by silhouette on June 12, 2020</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+
+    <!-- Post Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+				<h2 id="前言">前言</h2>
+
+<p>书接上回，上一篇博客简单的介绍了一下<a href="https://silhouettely.github.io/2020/06/09/nginx00/"><code class="highlighter-rouge">Nginx</code>及其安装</a>，接下来，让我们详细学习<code class="highlighter-rouge">Nginx</code>服务器的各种配置指令的作用和用法。下面是本博客所参考链接</p>
+
+<ul>
+  <li><a href="https://www.jianshu.com/p/39bdc25adaf0">从一份配置清单详解Nginx服务器配置</a></li>
+  <li><a href="https://blog.51cto.com/ixdba/790611">轻量级HTTP服务器Nginx（配置与调试Nginx）</a></li>
+  <li><a href="https://blog.csdn.net/tjcyjd/article/details/50695922">Nginx配置文件（nginx.conf）配置详解</a></li>
+</ul>
+
+<h2 id="一nginx-配置文件详解">一、Nginx 配置文件详解</h2>
+
+<h3 id="11-nginxconf-配置文件">1.1 nginx.conf 配置文件</h3>
+
+<p>Nginx 安装目录下，其默认的配置文件都放在<code class="highlighter-rouge">conf</code>目录下，而主配置文件<code class="highlighter-rouge">nginx.conf</code>也在其中，后续对<code class="highlighter-rouge">Nginx</code>的使用基本都是对此配置文件进行相应的修改。</p>
+
+<p>常见的配置文件有如下几个：</p>
+
+<ul>
+  <li>nginx.conf：应用程序的基本配置文件</li>
+  <li>mime.types：MIME类型关联的扩展文件</li>
+  <li>fastcgi.conf：与 fastcgi 相关的配置</li>
+  <li>proxy.conf：与 proxy 相关的配置</li>
+  <li>sites.conf：配置 Nginx 提供的网站，包括虚拟主机</li>
+</ul>
+
+<p>具体结构见下图：</p>
+
+<p><img src="/img/images/nginx/01/01-nginx的conf文件.png" /></p>
+
+<p>查看<code class="highlighter-rouge">nginx.config</code>文件，将注释等删掉后可以明显的发现，该配置文件分为三部分：</p>
+
+<p><img src="/img/images/nginx/01/02-nginx配置文件结构.png" /></p>
+
+<h3 id="12-全局块">1.2 全局块</h3>
+
+<p>在配置文件开始到<code class="highlighter-rouge">events</code>块之间的内容，主要设置一些影响<code class="highlighter-rouge">Nginx</code>服务器整体运行的配置指令，主要有：</p>
+
+<ol>
+  <li>
+    <p>配置运行<code class="highlighter-rouge">Nginx</code>服务器的用户(组)</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 指令格式：user user [group];</span>
+<span class="c"># 		user：指定可以运行Nginx服务器的用户</span>
+<span class="c">#       group：可选项，可以运行Nginx服务器的用户组</span>
+user root<span class="p">;</span>
+</code></pre></div>    </div>
+
+    <blockquote>
+      <p>Tips：如果<code class="highlighter-rouge">user</code>指令不配置或者配置为<code class="highlighter-rouge">user nobody nobody</code>，则默认所有用户都可以启动<code class="highlighter-rouge">Nginx</code>进程</p>
+    </blockquote>
+  </li>
+  <li>
+    <p>允许生成的<code class="highlighter-rouge">worker process</code>数</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 指令格式：worker_processes number | auto;</span>
+<span class="c"># 	number：Nginx 进程最多可以产生的 worker processes</span>
+<span class="c"># 	auto：Nginx进程将自动检测</span>
+worker_processes  2<span class="p">;</span>
+</code></pre></div>    </div>
+
+    <blockquote>
+      <p>Tips：该指令是Nginx服务器实现并发处理服务的关键，worker_processes 值越大，可以支持的并发处理量也越多，但是会受到硬件、软件等设备的制约。</p>
+    </blockquote>
+
+    <p><img src="/img/images/nginx/01/03-worker_processes数.png" /></p>
+
+    <blockquote>
+      <p>Tips：启动 Nginx 的时候，会启动以 master 进程，这个进程不处理任何客户的请求，主要用来产生一个worker 进程，一个worker 进程来处理一个 request 请求。</p>
+    </blockquote>
+  </li>
+  <li>
+    <p>进程PID 存放路径</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 指令格式：pid file;</span>
+<span class="c">#		file：指定存放路径和文件名称，默认路径是 logs/nginx.pid</span>
+pid        logs/nginx.pid<span class="p">;</span>
+</code></pre></div>    </div>
+
+    <blockquote>
+      <p>Tips：Nginx进程是作为系统守护进程在运行，需要在某些文件中保存当前程序的主进程号，Nginx支持该保存文件路径的自定义。</p>
+    </blockquote>
+  </li>
+  <li>
+    <p>日志存放路径</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 指定格式：error_log file | stderr;</span>
+<span class="c"># 	file；日志输出到某个文件file</span>
+<span class="c"># 	stderr：日志输出到标准错误输出</span>
+error_log  logs/error.log<span class="p">;</span>
+error_log  logs/error.log  notice<span class="p">;</span>
+error_log  logs/error.log  info<span class="p">;</span>
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<h3 id="13-events块">1.3 <code class="highlighter-rouge">events</code>块</h3>
+
+<p><code class="highlighter-rouge">events</code>块涉及的指令主要影响<code class="highlighter-rouge">Nginx</code>服务器与用户的网络链接，常用的设置包括是否开始对多<code class="highlighter-rouge">work process</code>下的网络链接进行序列化，是否允许同时接受多个网络连接，选取哪种事件驱动模型来处理连接请求，每个<code class="highlighter-rouge">work process</code>可以同时支持的最大连接数等。</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>events <span class="o">{</span>
+		<span class="c"># 设置网络连接的序列化</span>
+		accept_mutex 	on | off<span class="p">;</span>
+		<span class="c"># 是否允许同时接受多个网络连接</span>
+		multi_accept 	on | off<span class="p">;</span>
+		<span class="c"># 事件驱动模型的选择</span>
+		<span class="c"># model 模型可选项包括：select、poll、kqueue、epoll、rtsig等</span>
+		use model<span class="p">;</span>
+		
+		<span class="c"># 最大连接数的配置。默认值为512，表示允许每一个 worker process可以同时开启的最大连接数</span>
+    worker_connections  1024<span class="p">;</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<h3 id="14-http块">1.4 <code class="highlighter-rouge">http</code>块</h3>
+
+<p>这里是<code class="highlighter-rouge">nginx</code>服务器配置中最频繁的部分，代理、缓存和日志定义等绝大多数功能和第三方模块的配置都在这里。</p>
+
+<blockquote>
+  <p>注意：<code class="highlighter-rouge">http</code>块也可以包括<code class="highlighter-rouge">http全局快</code>和<code class="highlighter-rouge">server块</code></p>
+</blockquote>
+
+<h4 id="141-http全局块">1.4.1 <code class="highlighter-rouge">http全局块</code></h4>
+
+<p>http全局块配置的指令包括文件引入、MIME-TYPE 定义、日志自定义、连接超时时间、单链接请求数上限等。</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 文件引入，将mime.types包含进来</span>
+include mime-types<span class="p">;</span>
+<span class="c"># mime-type定义,MIME-TYPE指的是网络资源的媒体类型，也即前端请求的资源类型</span>
+default_type mime-type<span class="p">;</span>
+
+<span class="c"># 自定义服务日志</span>
+<span class="c">#		path：自定义服务日志的路径+名称</span>
+<span class="c">#		format：可选项，自定义服务日志的字符串格式。其中可以使用log——format</span>
+access_log path <span class="o">[</span>format]
+
+<span class="c"># 允许sendfile 方式传输文件,默认为off</span>
+snedfile 		on |off<span class="p">;</span>
+<span class="c"># 若size &gt;0,则nginx进程的每个worker process每次调用sendfile()传输的数据最不不能超过此指；若size=0则表示不限制。默认为0</span>
+sendfile_max_chunk 	size<span class="p">;</span>
+
+<span class="c"># 连接超时时间配置</span>
+<span class="c">#			timeout：表示server端对接连接的保持时间，默认是75秒</span>
+<span class="c">#			header_timeout：可选项，表示在对答豹纹头部的 Keep-Alive域设置超市时间：“Keep-Alive:timeout=header_timeout”</span>
+keepalive_timeout <span class="nb">timeout</span> <span class="o">[</span>header_timeout]<span class="p">;</span>
+
+<span class="c"># 单连接请求数上限</span>
+<span class="c">#			该指令用于限定用户通过某一个连接向Ngin服务器发起请求的次数</span>
+keepalive_requests number<span class="p">;</span>
+
+<span class="c"># 设置允许客户端请求的最大的单个文件字节数</span>
+client_max_body_size 128m<span class="p">;</span>
+<span class="c"># 设置客户端请求头的headerbuffer大小</span>
+client_header_buffer_size 512k<span class="p">;</span>
+<span class="c"># 设置客户端请求主体的headerbuffer大小</span>
+client_body_buffer_size  512k<span class="p">;</span>
+<span class="c"># 设置客户端请求中较大的消息头的缓存最大数量和大小</span>
+large_client_header_buffers 4 512k<span class="p">;</span>
+<span class="c"># 设置客户端请求头读取超时时间</span>
+client_header_timeout 60<span class="p">;</span>
+<span class="c"># 设置客户端请求主体读取超时时间。</span>
+client_body_timeout 60<span class="p">;</span>
+<span class="c"># 响应客户端的超时时间</span>
+send_timeout 60<span class="p">;</span>
+
+
+<span class="c">#配置Nginx的HttpGzip模块。这个模块支持在线实时压缩输出数据流。可通过./nginx -v查看是否安装了该模块</span>
+<span class="c"># 设置开启或者关闭gzip模块</span>
+<span class="nb">gzip  </span>on<span class="p">;</span>
+<span class="c"># 用来指定压缩的类型，无论是否指定，“text/html”类型总是会被压缩的；</span>
+gzip_types application/javascript text/css<span class="p">;</span>
+<span class="c"># 设置允许压缩的页面最小字节数，页面字节数从header头的Content-Length中获取。默认值是0，不管页面多大都进行压缩。</span>
+gzip_min_length 1k<span class="p">;</span>
+<span class="c"># 表示申请4个单位为16K的内存作为压缩结果流缓存，默认值是申请与原始数据大小相同的内存空间来存储gzip压缩结果</span>
+gzip_buffers 4 16k<span class="p">;</span>
+<span class="c"># 指定GZIP压缩比，1 压缩比最小，处理速度最快；9 压缩比最大，传输速度快，但处理最慢，也比较消耗cpu资源</span>
+gzip_comp_level 9<span class="p">;</span>
+</code></pre></div></div>
+
+<blockquote>
+  <p>Tips：<code class="highlighter-rouge">cat mime.types</code>来查看mime.types文件内容，就是一个types结构，里面包含了各种浏览器能够识别的MIME类型以及对应类型的文件后缀名字，</p>
+</blockquote>
+
+<p><img src="/img/images/nginx/01/04-mime.types文件内容.png" /></p>
+
+<h4 id="142-server块">1.4.2 <code class="highlighter-rouge">server块</code></h4>
+
+<p>这块和虚拟主机有密切关系，虚拟主机从用户角度看，和一台独立的硬件主机是完全一样的，该技术的产生是为了节省互联网服务器的硬件成本。</p>
+
+<p><strong>每一个http块可以包含多个server块，而每个server 块就相当于一个虚拟主机</strong></p>
+
+<p><strong>而每个 server 块也分为全局server 块，以及可以同时包含多个 location 块</strong></p>
+
+<ul>
+  <li>
+    <p><code class="highlighter-rouge">全局server 块</code></p>
+
+    <ul>
+      <li>
+        <p>最常见的配置是本虚拟机的监听配置和本虚拟机的名称或IP配置</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 配置网络监听</span>
+<span class="c">#			配置监听具体IP和具体端口上的连接 --listen 192.168.30.201:8080;</span>
+<span class="c">#			配置监听具体IP上所有端口的连接   --listen 192.168.31.201;</span>
+<span class="c"># 		监听具体端口上的所有IP的连接     --listen 8080;</span>
+listen IP[:PORT]<span class="p">;</span>
+listen PORT:
+    
+<span class="c"># 基于名称和IP的虚拟主机配置</span>
+<span class="c"># 	name可以有多个并列名称，而且此处的name支持正则表达式</span>
+server_name 		name1 name2 ...
+server_name			IP地址<span class="p">;</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p><code class="highlighter-rouge">location块</code></p>
+
+    <ul>
+      <li>
+        <p><code class="highlighter-rouge">一个 server 块可以配置多个 location 块</code></p>
+      </li>
+      <li>
+        <p>这块的主要作用是基于 Nginx 服务器接收到的请求字符串(server_name/uri-string)，对虚拟主机名称(也可以是IP别名)之外的字符串(例如 前面的 /uri-string)进行匹配，对特定的请求进行处理。地址定向、数据缓存和应答控制等功能，还有许多第三方模块的配置也在这里进行。</p>
+      </li>
+      <li>
+        <p><code class="highlighter-rouge">该指令用于匹配URL</code>，语法如下：</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>location <span class="o">[</span> <span class="o">=</span> | ~ | ~<span class="k">*</span> | ^~ <span class="o">]</span> uri <span class="o">{</span>
+       
+<span class="o">}</span>
+</code></pre></div>        </div>
+
+        <ul>
+          <li><code class="highlighter-rouge">=</code>：用于不含正则表达式的 uri 前，要求请求字符串与 uri 严格匹配，如果匹配成功，就停止继续向下搜索并立即处理该请求。</li>
+          <li><code class="highlighter-rouge">~</code>：用于表示 uri 包含正则表达式，并且区分大小写</li>
+          <li><code class="highlighter-rouge">~*</code>：用于表示 uri 包含正则表达式，并且不区分大小写</li>
+          <li><code class="highlighter-rouge">^~</code>：用于不含正则表达式的 uri 前，要求 Nginx 服务器找到标识 uri 和请求字符串匹配度最高的 location 后，立即使用此 location 处理请求，而不再使用 location 块中的正则 uri 和请求字符串做匹配。</li>
+        </ul>
+
+        <blockquote>
+          <p>注意：如果 uri 包含正则表达式，则必须要有<code class="highlighter-rouge">~</code>或者<code class="highlighter-rouge">~*</code>标识</p>
+        </blockquote>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h4 id="143-upstream-块">1.4.3 <code class="highlighter-rouge">upstream 块</code></h4>
+
+<p><code class="highlighter-rouge">upstream</code>是Nginx 的HTTP Upstream 模块，这个模块通过一个简单的调度算法来实现客户端IP到后端服务器的负载均衡。</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>upstream tomcat1<span class="o">{</span>
+        server    192.168.30.77:8888<span class="p">;</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>Nginx 的负载均衡模块目前自持四种调度算法：</p>
+
+<ol>
+  <li>
+    <p>轮询(默认)</p>
+
+    <ul>
+      <li>每个请求按照时间顺序逐一分配到不同的后端服务器，如果后端服务器 down 掉，能自动剔除。</li>
+    </ul>
+  </li>
+  <li>
+    <p>weight</p>
+
+    <ul>
+      <li>weight 代表权重，权重默认为 1，权重越高被访问的机率越高，主要用于后端每个服务器性能不均的情况下</li>
+    </ul>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>upstream server_pool<span class="o">{</span>
+		server 192.168.5.21 <span class="nv">weight</span><span class="o">=</span>10<span class="p">;</span>
+		server 192.168.5.22 <span class="nv">weight</span><span class="o">=</span>10<span class="p">;</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>ip_hash</p>
+
+    <ul>
+      <li>每个请求按照访问 IP 的 hash 结果分配，这样每个访客固定访问一个后端服务器，可以解决方案session 的问题</li>
+    </ul>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>upstream server_pool<span class="o">{</span>
+		ip_hash<span class="p">;</span>
+		server 192.168.5.21:80<span class="p">;</span>
+		server 192.168.5.22:80<span class="p">;</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>fair(第三方)</p>
+
+    <ul>
+      <li>按后端服务器的响应时间来分配请求，响应时间短的优先分配</li>
+    </ul>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>upstream server_pool<span class="o">{</span>
+		server 192.168.5.21:80<span class="p">;</span>
+		server 192.168.5.22:80<span class="p">;</span>
+		fair<span class="p">;</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<h3 id="15-nginx-原理剖析">1.5 Nginx 原理剖析</h3>
+
+<p>我们查看 nginx 进程时，总会看到这样两条进程，如下所示：</p>
+
+<p><img src="/img/images/nginx/01/05-mater与worker.png" /></p>
+
+<p>实际上在启动 Nginx 的时候，会启动以 master 进程，这个进程不处理任何客户的请求，主要用来产生一个worker 进程，一个worker 进程来处理一个 request 请求，当然worker可以有多个，可通过配置实现。流程如下所示：</p>
+
+<p><img src="/img/images/nginx/01/06-master&amp;worker.png" /></p>
+
+<p>那么worker时如何工作的呢？流程如下所示：</p>
+
+<p><img src="/img/images/nginx/01/07-worker工作流程.png" /></p>
+
+<h4 id="151-master-workers-机制的好处">1.5.1 master-workers 机制的好处</h4>
+
+<ol>
+  <li>可以使用<code class="highlighter-rouge">nginx -s reload</code>进行热部署，注意此时有任务的worker 不参与重启操作</li>
+  <li>首先，对于每个 worker. 进程来说，独立的进程，不需要枷锁，所以省略了锁带来的开销，同时在编程以及问题查找时，也会方便很多。其次，采用独立的进程，可以让互相之间不会影响，一个进程退出后，其他进程还在工作，服务不会中断，master 进程则很快启动新的worker 进程。当然，worker 进程的异常退出，肯定是程序有 BUG了，会导致当前 worker 上的所有请求失败，不会影响到所有请求，所以降低了风险。
+    <ul>
+      <li>每个worker是独立的进程，所以有其中的一个 worker 出现问题，其他的worker 独立的，继续进行争抢，实现请求过程，不会造成服务中断。</li>
+    </ul>
+  </li>
+</ol>
+
+<h4 id="152-worker数量的合理化设置">1.5.2 worker数量的合理化设置</h4>
+
+<p>Nginx 同 redis 类似都采用了 <strong>io 多路复用机制</strong>，<strong>每个 worker 都是一个独立的进程</strong>，但每个进程里只有一个主线程，通过异步非阻塞的方式来处理请求， 即使是千上万个请求也不在话 下。每个 worker 的线程可以把一个 cpu 的性能发挥到极致。<code class="highlighter-rouge">所以 worker 数和服务器的 cpu 数相等是最为适宜的</code>。设少了会浪费 cpu，设多了会造成 cpu 频繁切换上下文带来的损耗。</p>
+
+<ul>
+  <li>
+    <p>连接数 worker_connection</p>
+
+    <ul>
+      <li>
+        <p>这个值是表示每个 worker 进程所能建立连接的最大值，所以，一个 nginx 能建立的最大连接数，应该是 worker_connections * worker_processes。</p>
+
+        <ul>
+          <li>即发送一个请求，最少占用 2 个连接数，如涉及到数据库连接等操作，最少得 4 个连接数</li>
+        </ul>
+      </li>
+      <li>
+        <p>最大连接数，对于 HTTP 请求本地资源来说 ， 能够支持的最大并发数量是 worker_connections *  worker_processes，如果是支持 http1.1 的浏览器每次访问要占两个连接。</p>
+
+        <ul>
+          <li>普通的静态访 问最大并发数是： worker_connections * worker_processes /2</li>
+          <li>如果是 HTTP 作 为反向代理来说，最大并发数量应该是 worker_connections * worker_processes/4</li>
+        </ul>
+
+        <blockquote>
+          <p>因为作为反向代理服务器，每个并发会建立与客户端的连接和与后端服 务的连接，会占用两个连接</p>
+        </blockquote>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+
+                <hr>
+
+                
+
+
+                <ul class="pager">
+                    
+                    <li class="previous">
+                        <a href="/2020/06/10/fasrDFS00/" data-toggle="tooltip" data-placement="top" title="FastDFS初识">&larr; Previous Post</a>
+                    </li>
+                    
+                    
+                    <li class="next">
+                        <a href="/2020/06/14/nginx02/" data-toggle="tooltip" data-placement="top" title="02_Nginx配置示例">Next Post &rarr;</a>
+                    </li>
+                    
+                </ul>
+
+
+                
+
+                
+
+            </div>
+
+    <!-- Sidebar Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                <!-- Featured Tags -->
+                
+                <section>
+                    <hr class="hidden-sm hidden-xs">
+                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
+                    <div class="tags">
+        				
+                            
+                				<a href="/tags/#Blog" title="Blog" rel="2">
+                                    Blog
+                                </a>
+                            
+        				
+                            
+        				
+                            
+        				
+                            
+                				<a href="/tags/#Music" title="Music" rel="2">
+                                    Music
+                                </a>
+                            
+        				
+                            
+                				<a href="/tags/#全文检索" title="全文检索" rel="2">
+                                    全文检索
+                                </a>
+                            
+        				
+                            
+                				<a href="/tags/#Nginx" title="Nginx" rel="2">
+                                    Nginx
+                                </a>
+                            
+        				
+                            
+        				
+                            
+        				
+                            
+        				
+        			</div>
+                </section>
+                
+
+                <!-- Friends Blog -->
+                
+                <hr>
+                <h5>FRIENDS</h5>
+                <ul class="list-inline">
+                    
+                        <li><a href="https://mariajiang.github.io/">姜梦原的博客</a></li>
+                    
+                </ul>
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+
+
+
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+<!-- anchor-js, Doc:http://bryanbraun.github.io/anchorjs/ -->
+<script>
+    async("http://cdn.bootcss.com/anchor-js/1.1.1/anchor.min.js",function(){
+        anchors.options = {
+          visible: 'always',
+          placement: 'right',
+          icon: '#'
+        };
+        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
+    })
+</script>
+<style>
+    /* place left on bigger screen */
+    @media all and (min-width: 800px) {
+        .anchorjs-link{
+            position: absolute;
+            left: -0.75em;
+            font-size: 1.1em;
+            margin-top : -0.1em;
+        }
+    }
+</style>
+
+
+
+    <!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                    
+                    
+
+                    <!-- add Weibo, Zhihu by Hux, add target = "_blank" to <a> by Hux -->
+                    
+                    
+
+
+                    
+                    
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright &copy; Silhouette's Blog 2020
+                    <br>
+                    Theme by <a href="https://caojiele.com">caojiele</a> |
+                    <iframe
+                        style="margin-left: 2px; margin-bottom:-5px;"
+                        frameborder="0" scrolling="0" width="100px" height="20px"
+                        src="https://ghbtns.com/github-btn.html?user=huxpro&repo=huxpro.github.io&type=star&count=true" >
+                    </iframe>
+                </p>
+            </div>
+        </div>
+    </div>
+    <!--回到顶部-->
+    <div id="backtop">
+       <a href="#">TOP</a>
+    </div> 
+    <!--搜索框-->
+    <div class="cb-search-tool" style="position: fixed; top: 0px ; bottom: 0px; left: 0px; right:  0px;
+      opacity: 0.95; background-color: #111111; z-index: 9999; display: none;">
+    	<input type="text" class="form-control cb-search-content" id="cb-search-content" style="position: fixed; top: 60px" placeholder="文章标题 日期 >标签" >
+
+    	<div style="position: fixed; top: 16px; right: 16px;">
+        	<img src="/search/img/cb-close.png"  id="cb-close-btn"/>
+    	</div>
+    </div>
+
+    <div style="position: fixed; right: 16px; bottom: 20px;">
+    	<img src="/search/img/cb-search.png"  id="cb-search-btn"  title="双击ctrl试一下"/>
+    </div>
+</footer>
+<!-- jQuery -->
+<script src="/js/jquery.min.js "></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="/js/bootstrap.min.js "></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="/js/hux-blog.min.js "></script>
+<script src="/js/silhouette.js "></script>
+
+<!--jekyll search-->
+<script src="/search/js/bootstrap3-typeahead.min.js"></script>
+<script src="/search/js/cb-search.js"></script>
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+<!-- 
+     Because of the native support for backtick-style fenced code blocks 
+     right within the Markdown is landed in Github Pages, 
+     From V1.6, There is no need for Highlight.js, 
+     so Huxblog drops it officially.
+
+     - https://github.com/blog/2100-github-pages-now-faster-and-simpler-with-jekyll-3-0  
+     - https://help.github.com/articles/creating-and-highlighting-code-blocks/    
+-->
+<!--
+    <script>
+        async("http://cdn.bootcss.com/highlight.js/8.6/highlight.min.js", function(){
+            hljs.initHighlightingOnLoad();
+        })
+    </script>
+    <link href="http://cdn.bootcss.com/highlight.js/8.6/styles/github.min.css" rel="stylesheet">
+-->
+
+
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async("/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+<!--fastClick.js -->
+<script>
+    async("http://cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+<!-- Google Analytics -->
+
+
+
+<!-- Baidu Tongji -->
+
+
+
+
+<!-- Image to hack wechat -->
+<img src="/img/icon_wechat.png" width="0" height="0" />
+<!-- Migrate from head to bottom, no longer block render and still work -->
+
+</body>
+<!-- or without installing anything -->
+<script src="https://unpkg.com/simple-jekyll-search/dest/simple-jekyll-search.min.js"></script>
+</html>
