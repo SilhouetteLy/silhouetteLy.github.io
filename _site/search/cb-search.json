@@ -3,7 +3,39 @@
 	"data" : [
 	 
 	{
-		"title" : "02_Nginx配置示例 - Nginx,_Keepalived",
+		"title" : "03_Redis集群搭建 - Redis",
+		"url" : "/2020/06/20/redis03/"
+	}
+	
+	,
+	
+    
+	{
+		"title" : "02_Redis 发布与订阅模式 - Redis",
+		"url" : "/2020/06/18/redis02/"
+	}
+	
+	,
+	
+    
+	{
+		"title" : "01_Redis的数据操作 - Redis",
+		"url" : "/2020/06/17/redis01/"
+	}
+	
+	,
+	
+    
+	{
+		"title" : "00_Redis初识 - Redis",
+		"url" : "/2020/06/16/redis00/"
+	}
+	
+	,
+	
+    
+	{
+		"title" : "02_Nginx配置示例 - Nginx_Keepalived",
 		"url" : "/2020/06/14/nginx02/"
 	}
 	
@@ -19,7 +51,7 @@
 	
     
 	{
-		"title" : "FastDFS初识 - FastDFS",
+		"title" : "FastDFS初识 - FastDFS_Nginx",
 		"url" : "/2020/06/10/fasrDFS00/"
 	}
 	

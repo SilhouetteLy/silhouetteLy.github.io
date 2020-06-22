@@ -1,0 +1,1177 @@
+I"�<h2 id="一redis-的数据操作">一、Redis 的数据操作</h2>
+
+<h3 id="11-redis-的-key">1.1 Redis 的 key</h3>
+
+<p><strong>redis 的 Key 是字符串类型，但是 Key 中不能包含边界字符</strong>，由于 key 不是 binary safe 的字符串，所以想“my key”和“mykey\n”这样的包含空格和换行的 key 是不允许的。</p>
+
+<h3 id="12-redis-的-value">1.2 Redis 的 value</h3>
+
+<p>redis 提供五种数据类型：<code class="highlighter-rouge">String类型</code>、<code class="highlighter-rouge">hash类型</code>、<code class="highlighter-rouge">list类型</code>、<code class="highlighter-rouge">set类型</code> 及 <code class="highlighter-rouge">sorted set类型</code>。</p>
+
+<h4 id="121-string-类型">1.2.1 <code class="highlighter-rouge">String 类型</code></h4>
+
+<p>Redis 中没有使用 C 语言的字符串表示，而是自定义一个数据结构叫 <strong>SDS(simple dynamic string，简单动态字符)</strong>。Redis 的字符串是二进制安全的，存入什么数据取出的还是什么数据。String 类型的常用命令有：</p>
+
+<ul>
+  <li>
+    <p>赋值命令</p>
+
+    <ul>
+      <li>
+        <p>redis 中赋值操作使用 set 命令，语法：<code class="highlighter-rouge">set key value</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; <span class="k">select </span>1
+OK
+127.0.0.1:6379[1]&gt; keys <span class="k">*</span>
+<span class="o">(</span>empty list or <span class="nb">set</span><span class="o">)</span>
+127.0.0.1:6379[1]&gt; <span class="nb">set </span>name tom 
+OK
+127.0.0.1:6379[1]&gt; keys <span class="k">*</span>
+1<span class="o">)</span> <span class="s2">"name"</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>如果希望一次性插入多条数据，可以使用 mset 命令，语法：<code class="highlighter-rouge">mset key1 value1 key2 value2 ...</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; mset age 18 score 100 sex male
+OK
+127.0.0.1:6379[1]&gt; keys <span class="k">*</span>
+1<span class="o">)</span> <span class="s2">"score"</span>
+2<span class="o">)</span> <span class="s2">"age"</span>
+3<span class="o">)</span> <span class="s2">"name"</span>
+4<span class="o">)</span> <span class="s2">"sex"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>取值命令</p>
+
+    <ul>
+      <li>
+        <p>redis 中进行取值操作使用 get 命令，语法：<code class="highlighter-rouge">get key</code>。如果给定的键不存在则返回（<strong>nil</strong>），表示查询结果为空。</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; get name
+<span class="s2">"tom"</span>
+127.0.0.1:6379[1]&gt; get names
+<span class="o">(</span>nil<span class="o">)</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>如果希望一次性从redis 中获取多个键对应的数据的值，可以使用mget 命令，语法：<code class="highlighter-rouge">mget key1 key2 ...</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; mget name sex score
+1<span class="o">)</span> <span class="s2">"tom"</span>
+2<span class="o">)</span> <span class="s2">"male"</span>
+3<span class="o">)</span> <span class="s2">"100"</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>在获取对应键的数据时，想为该键指定新的值可以使用 getset 命令，语法：<code class="highlighter-rouge">getset key newValue</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; getset score 99
+<span class="s2">"100"</span>
+127.0.0.1:6379[1]&gt; get score
+<span class="s2">"99"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>删除命令</p>
+
+    <ul>
+      <li>
+        <p>在redis 中删除数据使用 del 命令，语法：<code class="highlighter-rouge">del key</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; del score
+<span class="o">(</span>integer<span class="o">)</span> 1
+127.0.0.1:6379[1]&gt; get score
+<span class="o">(</span>nil<span class="o">)</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>如果需要直接清空该库中所有数据，可以使用 flushdb 命令，语法：<code class="highlighter-rouge">flushdb</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; flushdb
+OK
+127.0.0.1:6379[1]&gt; keys <span class="k">*</span>
+<span class="o">(</span>empty list or <span class="nb">set</span><span class="o">)</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>如果要清空所有库中的所有数据，可以使用 flushall 命令，语法：<code class="highlighter-rouge">flushall</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; flushall
+OK
+127.0.0.1:6379[1]&gt; <span class="k">select </span>0
+OK
+127.0.0.1:6379&gt; keys <span class="k">*</span>
+<span class="o">(</span>empty list or <span class="nb">set</span><span class="o">)</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>数据递增</p>
+
+    <ul>
+      <li>
+        <p>当存储的字符串是整数时，Redis 提供了一个实用的命令 incr ，其作用是让当前键值递增，并返回递增后的值，语法：<code class="highlighter-rouge">incr key</code>。</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; <span class="nb">set </span>num 1
+OK
+127.0.0.1:6379&gt; incr num
+<span class="o">(</span>integer<span class="o">)</span> 2
+127.0.0.1:6379&gt; get num 
+<span class="s2">"2"</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>上述自增表示每次使用该指令，指定键值都会加1，如果需要按照指定的额数据来进行增长，可以使用 incrby 命令，语法：<code class="highlighter-rouge">incrby key increment</code>。</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; incrby num 10
+<span class="o">(</span>integer<span class="o">)</span> 12
+127.0.0.1:6379&gt; get num
+<span class="s2">"12"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>数值递减</p>
+
+    <ul>
+      <li>
+        <p>当需要对数据进行递减操作时，使用 decr 命令，语法：<code class="highlighter-rouge">decr key</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; get num
+<span class="s2">"12"</span>
+127.0.0.1:6379&gt; decr num
+<span class="o">(</span>integer<span class="o">)</span> 11
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>如果希望递减指定的数值，可以使用 decrby 命令，语法：<code class="highlighter-rouge">decrby key decrement</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; decrby num 10
+<span class="o">(</span>integer<span class="o">)</span> 1
+127.0.0.1:6379&gt; get num
+<span class="s2">"1"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>追加数据</p>
+
+    <ul>
+      <li>
+        <p>在 Redis 中可以使用 append 命令向指定数据的末尾追加内容，语法：<code class="highlighter-rouge">append key value</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; <span class="nb">set </span>name silhouette
+OK
+127.0.0.1:6379&gt; append name <span class="s2">" liu"</span>
+<span class="o">(</span>integer<span class="o">)</span> 14
+127.0.0.1:6379&gt; get name
+<span class="s2">"silhouette liu"</span>
+</code></pre></div>        </div>
+
+        <blockquote>
+          <p>注意：在插入数据时，字符串的双引号可以省略，但是如果字符串中包含空格的情况，需要加上双引号，否则空格会被忽略。</p>
+        </blockquote>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>获取长度</p>
+
+    <ul>
+      <li>
+        <p>使用 strlen 命令可以返回指定键对应的值的长度，如果键不存在则返回 0。语法：<code class="highlighter-rouge">strlen key</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; get name
+<span class="s2">"silhouette liu"</span>
+127.0.0.1:6379&gt; strlen key
+<span class="o">(</span>integer<span class="o">)</span> 0
+127.0.0.1:6379&gt; get name
+<span class="s2">"silhouette liu"</span>
+127.0.0.1:6379&gt; strlen name
+<span class="o">(</span>integer<span class="o">)</span> 14
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h4 id="122--hash-类型">1.2.2  <code class="highlighter-rouge">Hash 类型</code></h4>
+
+<p>hash 叫散列类型，它提供了字段和字段值的映射。字段值只能是字符串类型，不支持散列类型、集合类型等其他类型。hash 类型的常用命令有：</p>
+
+<ul>
+  <li>
+    <p>赋值命令</p>
+
+    <ul>
+      <li>
+        <p>向 hash 中插入数据时，可以使用 hset 命令。语法：<code class="highlighter-rouge">hset key field value</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; hset user name silhouette
+<span class="o">(</span>integer<span class="o">)</span> 1
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>如果希望从 redis 中一次性设置多个字段的值，可以使用 hmset 命令。语法：<code class="highlighter-rouge">kmset key field1 value1 field2 value2 ...</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; hmset user stuNo 1 age 18 score 99
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>取值命令</p>
+
+    <ul>
+      <li>
+        <p>从 hash 中获取数据使用 hget 命令，语法：<code class="highlighter-rouge">hget key field</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; hget user name
+<span class="s2">"silhouette"</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>使用hmget 可以一次性获取多个字段的值。语法：<code class="highlighter-rouge">hmget key field1 field2 field3 ....</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; hmget user stuNo age score
+1<span class="o">)</span> <span class="s2">"1"</span>
+2<span class="o">)</span> <span class="s2">"18"</span>
+3<span class="o">)</span> <span class="s2">"99"</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>可以使用 hgetall 命令，或者指定键的所有字段和字段的值。语法：<code class="highlighter-rouge">hgetall key</code></p>
+
+        <pre><code class="language-sheel">127.0.0.1:6379[1]&gt; hgetall user
+1) "name"
+2) "silhouette"
+3) "stuNo"
+4) "1"
+5) "age"
+6) "18"
+7) "score"
+8) "99"
+</code></pre>
+      </li>
+      <li>
+        <p>使用 HKEYS 和 HVALS 命令可以分别用来获取指定键的所有键和所有值。语法：<code class="highlighter-rouge">hkeys key</code> 和<code class="highlighter-rouge">hvals key</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; hkeys user
+1<span class="o">)</span> <span class="s2">"name"</span>
+2<span class="o">)</span> <span class="s2">"stuNo"</span>
+3<span class="o">)</span> <span class="s2">"age"</span>
+4<span class="o">)</span> <span class="s2">"score"</span>
+127.0.0.1:6379[1]&gt; hvals user
+1<span class="o">)</span> <span class="s2">"silhouette"</span>
+2<span class="o">)</span> <span class="s2">"1"</span>
+3<span class="o">)</span> <span class="s2">"18"</span>
+4<span class="o">)</span> <span class="s2">"99"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>判断字段是否存在</p>
+
+    <ul>
+      <li>
+        <p>判断字段是否存在使用 HEXISTS 命令，如果存在则返回 1，如果不存在则返回 0，语法：<code class="highlighter-rouge">hexists key field</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; hexists user name
+<span class="o">(</span>integer<span class="o">)</span> 1
+127.0.0.1:6379[1]&gt; hexists user sex
+<span class="o">(</span>integer<span class="o">)</span> 0
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>获取字段数量</p>
+
+    <ul>
+      <li>
+        <p>获取字段数量使用 HLEN 命令，如果键不存在则返回0，语法：<code class="highlighter-rouge">hlen key</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; hlen user 
+<span class="o">(</span>integer<span class="o">)</span> 4
+127.0.0.1:6379[1]&gt; hlen key
+<span class="o">(</span>integer<span class="o">)</span> 0
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>删除命令</p>
+
+    <ul>
+      <li>
+        <p>要删除一个或多个字段，使用 hdel 命令，语法：<code class="highlighter-rouge">hdel key field [field ...]</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; hgetall user
+1<span class="o">)</span> <span class="s2">"name"</span>
+2<span class="o">)</span> <span class="s2">"silhouette"</span>
+3<span class="o">)</span> <span class="s2">"stuNo"</span>
+4<span class="o">)</span> <span class="s2">"1"</span>
+5<span class="o">)</span> <span class="s2">"age"</span>
+6<span class="o">)</span> <span class="s2">"18"</span>
+7<span class="o">)</span> <span class="s2">"score"</span>
+8<span class="o">)</span> <span class="s2">"99"</span>
+127.0.0.1:6379[1]&gt; hdel user score age
+<span class="o">(</span>integer<span class="o">)</span> 2
+127.0.0.1:6379[1]&gt; hgetall user
+1<span class="o">)</span> <span class="s2">"name"</span>
+2<span class="o">)</span> <span class="s2">"silhouette"</span>
+3<span class="o">)</span> <span class="s2">"stuNo"</span>
+4<span class="o">)</span> <span class="s2">"1"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>增加数字</p>
+
+    <ul>
+      <li>
+        <p>如果 hash 中的字段存储的是值是数值类型，可以进行自增操作。语法：<code class="highlighter-rouge">hincrby key field increment</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; hget user stuNo
+<span class="s2">"1"</span>
+127.0.0.1:6379[1]&gt; hincrby user stuNo 1
+<span class="o">(</span>integer<span class="o">)</span> 2
+127.0.0.1:6379[1]&gt; hget user stuNo
+<span class="s2">"2"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h4 id="123-list类型">1.2.3 <code class="highlighter-rouge">list类型</code></h4>
+
+<p>列表类型（list）可以存储一个有序的字符串列表，常用的操作是向列表两端添加元素，或者获得列表的某个片段。列表类型内部是使用<code class="highlighter-rouge">双向链表(double linked list)</code>实现的，所以向列表两端添加元素的时间复杂度为 O(1)，获取越接近两端的元素速度就越快，这意味着即使是一个几千万个元素的列表，获取头部或尾部的10条记录也是极快的，list 类型的常用命令有；</p>
+
+<ul>
+  <li>
+    <p>添加元素</p>
+
+    <ul>
+      <li>
+        <p>Redis 列表采用双向链表实现，因此在插入数据时可以从两端分别操作，想列表左边增加元素使用 lpush 命令，语法：<code class="highlighter-rouge">lpush key value</code>。向列表右边添加元素使用 rpush 命令，语法：<code class="highlighter-rouge">rpush key value</code>。</p>
+      </li>
+      <li>
+        <p><code class="highlighter-rouge">lpush 命令是从左向右插入，从右向左弹出，满足先进先出的队列模式</code></p>
+      </li>
+      <li>
+        <p><code class="highlighter-rouge">rpush 命令是从右向左插入，从左向右弹出，满足先进先出的队列模式</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[1]&gt; <span class="k">select </span>2
+OK
+127.0.0.1:6379[2]&gt; lpush nums 1
+<span class="o">(</span>integer<span class="o">)</span> 1
+127.0.0.1:6379[2]&gt; lpush nums 2
+<span class="o">(</span>integer<span class="o">)</span> 2
+127.0.0.1:6379[2]&gt; lpush nums 3
+<span class="o">(</span>integer<span class="o">)</span> 3
+127.0.0.1:6379[2]&gt; lpush nums 4
+<span class="o">(</span>integer<span class="o">)</span> 4
+127.0.0.1:6379[2]&gt; lpush n  ums 5
+<span class="o">(</span>integer<span class="o">)</span> 5
+127.0.0.1:6379[2]&gt; rpush str a
+<span class="o">(</span>integer<span class="o">)</span> 1
+127.0.0.1:6379[2]&gt; rpush str b
+<span class="o">(</span>integer<span class="o">)</span> 2
+127.0.0.1:6379[2]&gt; rpush str c
+<span class="o">(</span>integer<span class="o">)</span> 3
+127.0.0.1:6379[2]&gt; rpush str d
+<span class="o">(</span>integer<span class="o">)</span> 4
+127.0.0.1:6379[2]&gt; rpush str e
+<span class="o">(</span>integer<span class="o">)</span> 5
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>查看列表</p>
+
+    <ul>
+      <li>
+        <p>LRANGE 命令是列表类型最常用的命令之一，获取列表中的某一片段，将返回 start、stop 之间的所有元素(包括两端的元素)，索引从 0 开始。索引可以是负数，如：“-1”代表最右边的一个元素。</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[2]&gt; lrange nums 0 4
+1<span class="o">)</span> <span class="s2">"5"</span>
+2<span class="o">)</span> <span class="s2">"4"</span>
+3<span class="o">)</span> <span class="s2">"3"</span>
+4<span class="o">)</span> <span class="s2">"2"</span>
+5<span class="o">)</span> <span class="s2">"1"</span>
+127.0.0.1:6379[2]&gt; lrange str 0 4
+1<span class="o">)</span> <span class="s2">"a"</span>
+2<span class="o">)</span> <span class="s2">"b"</span>
+3<span class="o">)</span> <span class="s2">"c"</span>
+4<span class="o">)</span> <span class="s2">"d"</span>
+5<span class="o">)</span> <span class="s2">"e"</span>
+</code></pre></div>        </div>
+
+        <blockquote>
+          <p>Tips：从以上获取的数据类型结构来看，我们发现从列表的左侧插入数据，在列表中数据以倒叙存放，从列表的右侧里插入数据则是正序存放</p>
+        </blockquote>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>获取数据</p>
+
+    <ul>
+      <li>
+        <p>在列表中可以使用 lpop 和 rpop 分别列表的左侧和右侧弹出一个数据，该数据会首先返回，然后再从原列表中删除。语法：<code class="highlighter-rouge">lpop key</code>或<code class="highlighter-rouge">rpop key</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[2]&gt; lpop nums
+<span class="s2">"5"</span>
+127.0.0.1:6379[2]&gt; lrange nums 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"4"</span>
+2<span class="o">)</span> <span class="s2">"3"</span>
+3<span class="o">)</span> <span class="s2">"2"</span>
+4<span class="o">)</span> <span class="s2">"1"</span>
+127.0.0.1:6379[2]&gt; rpop nums
+<span class="s2">"1"</span>
+127.0.0.1:6379[2]&gt; lrange nums 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"4"</span>
+2<span class="o">)</span> <span class="s2">"3"</span>
+3<span class="o">)</span> <span class="s2">"2"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>获取列表中元素的个数</p>
+
+    <ul>
+      <li>
+        <p>使用 LLEN 命令可以获取列表中元素的个数。语法：<code class="highlighter-rouge">LLEN key</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[2]&gt; llen str
+<span class="o">(</span>integer<span class="o">)</span> 5
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>删除列表中指定的值</p>
+
+    <ul>
+      <li>
+        <p>LREM 命令会删除列表中前 count 个值为 value 的元素，返回实际删除的元素个数。根据count 值的不同，该命令的执行方式会有所不同：语法：<code class="highlighter-rouge">LREM key count value</code></p>
+
+        <ul>
+          <li>当 count &gt; 0 时，LREM 会从列表左边开始删除</li>
+          <li>当 count &lt; 0 时，LREM 会从列表右边开始删除</li>
+          <li>当 count = 0 时，LREM 删除所有值为 value 的元素</li>
+        </ul>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[2]&gt; lrange str 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"a"</span>
+2<span class="o">)</span> <span class="s2">"b"</span>
+3<span class="o">)</span> <span class="s2">"c"</span>
+4<span class="o">)</span> <span class="s2">"d"</span>
+5<span class="o">)</span> <span class="s2">"e"</span>
+127.0.0.1:6379[2]&gt; lrem str 0 a
+<span class="o">(</span>integer<span class="o">)</span> 1
+127.0.0.1:6379[2]&gt; lrange str 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"b"</span>
+2<span class="o">)</span> <span class="s2">"c"</span>
+3<span class="o">)</span> <span class="s2">"d"</span>
+4<span class="o">)</span> <span class="s2">"e"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>获取/设置指定索引的元素值</p>
+
+    <ul>
+      <li>
+        <p>获取指定索引的元素值使用 lindex 命令，语法：<code class="highlighter-rouge">lindex key index</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[2]&gt; lrange nums 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"4"</span>
+2<span class="o">)</span> <span class="s2">"3"</span>
+3<span class="o">)</span> <span class="s2">"2"</span>
+127.0.0.1:6379[2]&gt; lindex nums 2
+<span class="s2">"2"</span>
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>设置指定索引的元素值使用 lset 命令，语法：<code class="highlighter-rouge">lset key index value</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[2]&gt; lset nums 2 x
+OK
+127.0.0.1:6379[2]&gt; lrange nums 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"4"</span>
+2<span class="o">)</span> <span class="s2">"3"</span>
+3<span class="o">)</span> <span class="s2">"x"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>只保留列表指定片段</p>
+
+    <ul>
+      <li>
+        <p>List 中使用 ltrim 命令对列表中的数据进行截取操作，只保留指定数据片段。语法：<code class="highlighter-rouge">ltrim key start stop</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[2]&gt; ltrim nums 1 2
+OK
+127.0.0.1:6379[2]&gt; lrange nums 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"3"</span>
+2<span class="o">)</span> <span class="s2">"x"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>向列表中插入元素</p>
+
+    <ul>
+      <li>
+        <p>向列表中指定位置插入元素可以使用 linsert 命令，语法：<code class="highlighter-rouge">LINAERT key BEFORE|AFTER pivot value</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[2]&gt; lrange nums 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"4"</span>
+2<span class="o">)</span> <span class="s2">"x"</span>
+127.0.0.1:6379[2]&gt; linsert nums after 4 3
+<span class="o">(</span>integer<span class="o">)</span> 3
+127.0.0.1:6379[2]&gt; lrange nums 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"4"</span>
+2<span class="o">)</span> <span class="s2">"3"</span>
+3<span class="o">)</span> <span class="s2">"x"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>将元素从一个列表转移到另一个列表中</p>
+
+    <ul>
+      <li>
+        <p>使用 RPOPLPUSH 命令可以将元素从一个列表转移到另一个列表中。语法：<code class="highlighter-rouge">RPOPLPUSH source destination</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[2]&gt; lrange nums 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"4"</span>
+2<span class="o">)</span> <span class="s2">"3"</span>
+3<span class="o">)</span> <span class="s2">"x"</span>
+127.0.0.1:6379[2]&gt; lrange num1 0 <span class="nt">-1</span>
+<span class="o">(</span>empty list or <span class="nb">set</span><span class="o">)</span>
+127.0.0.1:6379[2]&gt; rpoplpush nums num1
+<span class="s2">"x"</span>
+127.0.0.1:6379[2]&gt; lrange num1 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"x"</span>
+127.0.0.1:6379[2]&gt; lrange nums 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"4"</span>
+2<span class="o">)</span> <span class="s2">"3"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h4 id="124-set-类型">1.2.4 <code class="highlighter-rouge">set 类型</code></h4>
+
+<p>集合类型的常用操作是向集合中加入或删除元素，怕奴蛋某个元素是否存在等。由于集合类型的 redis 内部是使用值为空的<strong>散列表</strong>实现，所以这些操作的时间复杂度都为 O(1)。redis 还提供了多个集合之间的交集、并集、差集的运算。</p>
+
+<ul>
+  <li>
+    <p>增加/删除元素</p>
+
+    <ul>
+      <li>
+        <p>集合中添加数据使用 sadd 命令，语法：<code class="highlighter-rouge">sadd key member [member ...]</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[2]&gt; <span class="k">select </span>3
+OK
+127.0.0.1:6379[3]&gt; sadd num1 10 20
+<span class="o">(</span>integer<span class="o">)</span> 2
+127.0.0.1:6379[3]&gt; sadd num2 10 20 30 40 
+<span class="o">(</span>integer<span class="o">)</span> 4
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>获取集合中的所有元素</p>
+
+    <ul>
+      <li>
+        <p>获取集合中的所有元素使用 SMEMBERS 命令，语法：<code class="highlighter-rouge">smembers key</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[3]&gt; smembers num1
+1<span class="o">)</span> <span class="s2">"10"</span>
+2<span class="o">)</span> <span class="s2">"20"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>集合的差集运算</p>
+
+    <ul>
+      <li>
+        <p>属于 A 并且不属于 B 的元素构成的集合，使用 SDIFF 命令，语法：<code class="highlighter-rouge">sdiff key [key ...]</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[3]&gt; sdiff num2 num1
+1<span class="o">)</span> <span class="s2">"30"</span>
+2<span class="o">)</span> <span class="s2">"40"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>集合的交集运算</p>
+
+    <ul>
+      <li>
+        <p>属于 A 并且也属于 B 的元素构成的集合，使用SINTER 命令，语法：<code class="highlighter-rouge">sinter key [key ...]</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[3]&gt; sinter num1 num2
+1<span class="o">)</span> <span class="s2">"10"</span>
+2<span class="o">)</span> <span class="s2">"20"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>集合的并集运算</p>
+
+    <ul>
+      <li>
+        <p>属于 A并且或者属于 B 的元素构成的集合，使用 SUNION 命令，语法：<code class="highlighter-rouge">sunoin key [key ...]</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[3]&gt; sunion num1 num2
+1<span class="o">)</span> <span class="s2">"10"</span>
+2<span class="o">)</span> <span class="s2">"20"</span>
+3<span class="o">)</span> <span class="s2">"30"</span>
+4<span class="o">)</span> <span class="s2">"40"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>获得集合中元素的个数</p>
+
+    <ul>
+      <li>
+        <p>获得集合中元素的个数，使用SCARD 命令，如果集合不存在则返回 0，语法：<code class="highlighter-rouge">scard key</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[3]&gt; scard num2
+<span class="o">(</span>integer<span class="o">)</span> 4
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>从集合中弹出一个元素</p>
+
+    <ul>
+      <li>
+        <p>从集合中<code class="highlighter-rouge">随机</code>的弹出一个元素使用 spop 命令，语法：<code class="highlighter-rouge">spop key</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[3]&gt; sadd num3 10 20 30 40 50
+<span class="o">(</span>integer<span class="o">)</span> 5
+127.0.0.1:6379[3]&gt; smembers num3
+1<span class="o">)</span> <span class="s2">"10"</span>
+2<span class="o">)</span> <span class="s2">"20"</span>
+3<span class="o">)</span> <span class="s2">"30"</span>
+4<span class="o">)</span> <span class="s2">"40"</span>
+5<span class="o">)</span> <span class="s2">"50"</span>
+127.0.0.1:6379[3]&gt; spop num3
+<span class="s2">"20"</span>
+127.0.0.1:6379[3]&gt; spop num3
+<span class="s2">"50"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h4 id="125--sorted-set-类型">1.2.5  <code class="highlighter-rouge">sorted set 类型</code></h4>
+
+<p>在集合类型的基础上<code class="highlighter-rouge">有序集合类型</code>为集合中的每个元素都关联一个分数，这使得我们不仅可以完成插入、删除和判断元素是否存在集合中，还能够获得分数最高或最低的前N个元素、获取指定分数范围内的元素等与分数有关的操作。</p>
+
+<p>在某些方面有序集合和列表类型有些相似。</p>
+
+<ul>
+  <li>两者都是有序的</li>
+  <li>两者都可以获得某一范围的元素</li>
+</ul>
+
+<p>但是，两者有着很大区别：</p>
+
+<ul>
+  <li>列表类型是通过链表实现的，获取靠近两端的数据速度极快，而当元素增多后，访问中间数据的速度会变慢。</li>
+  <li>有序集合类型使用散列表实现，所有即使读取位于中间部分的数据也很快</li>
+  <li>列表中不能简单的调用某个元素的位置，但是有序集合可以(通过更改分数实现)</li>
+  <li>有序集合要比列表类型更耗内存</li>
+</ul>
+
+<p>sorted set 类型的常用命令有：</p>
+
+<ol>
+  <li>
+    <p>增加元素</p>
+
+    <ul>
+      <li>
+        <p>向有序集合中加入一个元素和该元素的分数，如果该元素已经存在则会用新的分数替换原有的分数。返回值是新加入到集合中的元素个数，不包含执勤啊已经存在的元素。语法：<code class="highlighter-rouge">zadd key score member [score member]</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt; <span class="k">select </span>4
+OK
+127.0.0.1:6379[4]&gt; zadd score 80 tom 90 lucy 85 silhouette
+<span class="o">(</span>integer<span class="o">)</span> 3
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>获取排名在某个范围的元素列表</p>
+
+    <ul>
+      <li>
+        <p>获得排名子某个范围的元素列表使用 zrange 命令，语法：<code class="highlighter-rouge">zrange key start stop [withscores]</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt; zrange score 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"tom"</span>
+2<span class="o">)</span> <span class="s2">"silhouette"</span>
+3<span class="o">)</span> <span class="s2">"lucy"</span>
+127.0.0.1:6379[4]&gt; zrange score 0 <span class="nt">-1</span> withscores
+1<span class="o">)</span> <span class="s2">"tom"</span>
+2<span class="o">)</span> <span class="s2">"80"</span>
+3<span class="o">)</span> <span class="s2">"silhouette"</span>
+4<span class="o">)</span> <span class="s2">"85"</span>
+5<span class="o">)</span> <span class="s2">"lucy"</span>
+6<span class="o">)</span> <span class="s2">"90"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>删除元素</p>
+
+    <ul>
+      <li>
+        <p>移除有序集 key 中的一个或多个成员使用 zrem 命令，不存在的成员将被忽略。语法：<code class="highlighter-rouge">zrem key member[member ...]</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt; zrange score 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"tom"</span>
+2<span class="o">)</span> <span class="s2">"silhouette"</span>
+3<span class="o">)</span> <span class="s2">"lucy"</span>
+127.0.0.1:6379[4]&gt; zrem score tom
+<span class="o">(</span>integer<span class="o">)</span> 1
+127.0.0.1:6379[4]&gt; zrange score 0 <span class="nt">-1</span>
+1<span class="o">)</span> <span class="s2">"silhouette"</span>
+2<span class="o">)</span> <span class="s2">"lucy"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>获得指定分数范围的元素</p>
+
+    <ul>
+      <li>
+        <p>获得指定分数范围的元素使用 zrangebyscore 命令，语法：<code class="highlighter-rouge">ZRANGEBYSCORE key min max [WITHSCORES] [LIMIT offset count]</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt; zrangebyscore score 90 100 withscores
+1<span class="o">)</span> <span class="s2">"lucy"</span>
+2<span class="o">)</span> <span class="s2">"90"</span>
+127.0.0.1:6379[4]&gt;  zrange score 0 <span class="nt">-1</span> withscores
+1<span class="o">)</span> <span class="s2">"silhouette"</span>
+2<span class="o">)</span> <span class="s2">"85"</span>
+3<span class="o">)</span> <span class="s2">"lucy"</span>
+4<span class="o">)</span> <span class="s2">"90"</span>
+127.0.0.1:6379[4]&gt;  zrangebyscore score 90 100
+1<span class="o">)</span> <span class="s2">"lucy"</span>
+127.0.0.1:6379[4]&gt;  zrangebyscore score 90 100 withscores
+1<span class="o">)</span> <span class="s2">"lucy"</span>
+2<span class="o">)</span> <span class="s2">"90"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>增加某个元素的分数，返回值是更改后的分数</p>
+
+    <ul>
+      <li>
+        <p>增加某个元素的分数，返回值是更改后的分数，使用 zincrby 命令，语法：<code class="highlighter-rouge">ZINCRBY key increment member</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt; zincrby score 4 silhouette
+<span class="s2">"89"</span>
+127.0.0.1:6379[4]&gt;  zrange score 0 <span class="nt">-1</span> withscores
+1<span class="o">)</span> <span class="s2">"silhouette"</span>
+2<span class="o">)</span> <span class="s2">"89"</span>
+3<span class="o">)</span> <span class="s2">"lucy"</span>
+4<span class="o">)</span> <span class="s2">"90"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>获取集合中元素的数量</p>
+
+    <ul>
+      <li>
+        <p>获取集合中元素的数量使用 ZCARD 命令，语法：<code class="highlighter-rouge">ZCARD key</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt; zcard score
+<span class="o">(</span>integer<span class="o">)</span> 2
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>获得指定分数范围内的元素个数</p>
+
+    <ul>
+      <li>
+        <p>获取指定分数范围内的元素个数使用 ZOUNT 命令，语法：<code class="highlighter-rouge">ZCOUNT key min max</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt;  zrange score 0 <span class="nt">-1</span> withscores
+1<span class="o">)</span> <span class="s2">"silhouette"</span>
+2<span class="o">)</span> <span class="s2">"89"</span>
+3<span class="o">)</span> <span class="s2">"lucy"</span>
+4<span class="o">)</span> <span class="s2">"90"</span>
+127.0.0.1:6379[4]&gt; zcount score 90 100
+<span class="o">(</span>integer<span class="o">)</span> 1
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>按照排名范围删除元素</p>
+
+    <ul>
+      <li>
+        <p>按照排名范围删除元素使用 ZREMRANGEBYRANK 命令，语法：<code class="highlighter-rouge">ZREMRANGEBYRANK key start stop</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt; zadd score 80 tom 90 lucy 85 silhouette
+<span class="o">(</span>integer<span class="o">)</span> 3
+127.0.0.1:6379[4]&gt; zremrangebyrank score 0 1
+<span class="o">(</span>integer<span class="o">)</span> 2
+127.0.0.1:6379[4]&gt;  zrange score 0 <span class="nt">-1</span> withscores
+1<span class="o">)</span> <span class="s2">"lucy"</span>
+2<span class="o">)</span> <span class="s2">"90"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>按照分数范围删除元素</p>
+
+    <ul>
+      <li>
+        <p>按照分数范围删除元素使用 ZREMRANGEBYSCORE ，语法：<code class="highlighter-rouge">ZREMRANGEBYSCORE key start stop</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt;  zrange score 0 <span class="nt">-1</span> withscores
+1<span class="o">)</span> <span class="s2">"lili"</span>
+2<span class="o">)</span> <span class="s2">"75"</span>
+3<span class="o">)</span> <span class="s2">"tom"</span>
+4<span class="o">)</span> <span class="s2">"80"</span>
+5<span class="o">)</span> <span class="s2">"silhouette"</span>
+6<span class="o">)</span> <span class="s2">"85"</span>
+7<span class="o">)</span> <span class="s2">"lucy"</span>
+8<span class="o">)</span> <span class="s2">"90"</span>
+127.0.0.1:6379[4]&gt; zremrangebyscore score 0 79
+<span class="o">(</span>integer<span class="o">)</span> 1
+127.0.0.1:6379[4]&gt;  zrange score 0 <span class="nt">-1</span> withscores
+1<span class="o">)</span> <span class="s2">"tom"</span>
+2<span class="o">)</span> <span class="s2">"80"</span>
+3<span class="o">)</span> <span class="s2">"silhouette"</span>
+4<span class="o">)</span> <span class="s2">"85"</span>
+5<span class="o">)</span> <span class="s2">"lucy"</span>
+6<span class="o">)</span> <span class="s2">"90"</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>获取元素的排名</p>
+
+    <ul>
+      <li>
+        <p>获取元素的排名使用 ZRANK 命令，语法：<code class="highlighter-rouge">ZRANK key member</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt;  zrange score 0 <span class="nt">-1</span> withscores
+1<span class="o">)</span> <span class="s2">"tom"</span>
+2<span class="o">)</span> <span class="s2">"80"</span>
+3<span class="o">)</span> <span class="s2">"silhouette"</span>
+4<span class="o">)</span> <span class="s2">"85"</span>
+5<span class="o">)</span> <span class="s2">"lucy"</span>
+6<span class="o">)</span> <span class="s2">"90"</span>
+127.0.0.1:6379[4]&gt; zrank score silhouette
+<span class="o">(</span>integer<span class="o">)</span> 1
+127.0.0.1:6379[4]&gt; zrank score lucy
+<span class="o">(</span>integer<span class="o">)</span> 2
+127.0.0.1:6379[4]&gt; zrank score tom
+<span class="o">(</span>integer<span class="o">)</span> 0
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>获取元素的倒序排名使用 ZREVRANK 命令，语法：<code class="highlighter-rouge">ZREVRANK key member</code></p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt; zrank score lucy
+<span class="o">(</span>integer<span class="o">)</span> 2
+127.0.0.1:6379[4]&gt; zrevrank score lucy
+<span class="o">(</span>integer<span class="o">)</span> 0
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+</ol>
+
+<h3 id="13-redis-的其他命令">1.3 redis 的其他命令</h3>
+
+<h4 id="131-设置-key-的生存时间">1.3.1 设置 key 的生存时间</h4>
+
+<p>redis 在实际使用过程中更多的用做缓存，然而缓存的数据一般都是需要设置生存时间的，即：到期后数据销毁。</p>
+
+<pre><code class="language-txt">EXPIRE key seconds					设置key的生存时间（单位：秒）key在多少秒后会自动删除
+TTL key 										查看key生于的生存时间
+PERSIST key									清除生存时间 
+PEXPIRE key milliseconds		生存时间设置单位为：毫秒
+</code></pre>
+
+<h4 id="132-返回满足给定pattern-的所有-key">1.3.2 返回满足给定pattern 的所有 key</h4>
+
+<ul>
+  <li>
+    <p>redis 中可以使用 pattern 来获取键的名称</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt; keys <span class="k">*</span> 
+1<span class="o">)</span> <span class="s2">"score"</span>
+2<span class="o">)</span> <span class="s2">"scores"</span>
+127.0.0.1:6379[4]&gt; keys score<span class="k">*</span>
+1<span class="o">)</span> <span class="s2">"score"</span>
+2<span class="o">)</span> <span class="s2">"scores"</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h4 id="133-重命令-key">1.3.3 重命令 key</h4>
+
+<ul>
+  <li>
+    <p>重命名 key 使用 rename 命令，语法：<code class="highlighter-rouge">rename name newname</code></p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt; keys <span class="k">*</span> 
+1<span class="o">)</span> <span class="s2">"score"</span>
+2<span class="o">)</span> <span class="s2">"scores"</span>
+127.0.0.1:6379[4]&gt; rename scores demo
+OK
+127.0.0.1:6379[4]&gt; keys <span class="k">*</span>
+1<span class="o">)</span> <span class="s2">"score"</span>
+2<span class="o">)</span> <span class="s2">"demo"</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h4 id="134-返回值类型">1.3.4 返回值类型</h4>
+
+<ul>
+  <li>
+    <p>使用 type 命令可以返回指定键的值的类型，语法：<code class="highlighter-rouge">type key</code></p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt; <span class="nb">type </span>score
+zset
+127.0.0.1:6379[4]&gt; <span class="nb">set </span>name lili
+OK
+127.0.0.1:6379[4]&gt; <span class="nb">type </span>name
+string
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h4 id="135-获取服务器的信息和统计">1.3.5 获取服务器的信息和统计</h4>
+
+<ul>
+  <li>
+    <p>获取服务器的信息和统计使用 info 命令</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt; info
+<span class="c"># Server</span>
+redis_version:3.0.0
+redis_git_sha1:00000000
+redis_git_dirty:0
+redis_build_id:623444a9491ce503
+redis_mode:standalone
+os:Linux 3.10.0-1062.el7.x86_64 x86_64
+arch_bits:64
+multiplexing_api:epoll
+gcc_version:4.8.5
+process_id:1576
+run_id:2887fee0240c056f048965cf62410d4ba5df2dca
+tcp_port:6379
+uptime_in_seconds:12794
+uptime_in_days:0
+hz:10
+lru_clock:15313912
+config_file:/usr/local/redis/etc/redis.conf
+  
+<span class="c"># Clients</span>
+connected_clients:1
+client_longest_output_list:0
+client_biggest_input_buf:0
+blocked_clients:0
+  
+<span class="c"># Memory</span>
+used_memory:816152
+used_memory_human:797.02K
+used_memory_rss:7442432
+used_memory_peak:816616
+used_memory_peak_human:797.48K
+used_memory_lua:35840
+mem_fragmentation_ratio:9.12
+mem_allocator:jemalloc-3.6.0
+  
+<span class="c"># Persistence</span>
+loading:0
+rdb_changes_since_last_save:3
+rdb_bgsave_in_progress:0
+rdb_last_save_time:1592371760
+rdb_last_bgsave_status:ok
+rdb_last_bgsave_time_sec:0
+rdb_current_bgsave_time_sec:-1
+aof_enabled:0
+aof_rewrite_in_progress:0
+aof_rewrite_scheduled:0
+aof_last_rewrite_time_sec:-1
+aof_current_rewrite_time_sec:-1
+aof_last_bgrewrite_status:ok
+aof_last_write_status:ok
+  
+<span class="c"># Stats</span>
+total_connections_received:1
+total_commands_processed:190
+instantaneous_ops_per_sec:0
+total_net_input_bytes:7121
+total_net_output_bytes:5012
+instantaneous_input_kbps:0.00
+instantaneous_output_kbps:0.00
+rejected_connections:0
+sync_full:0
+sync_partial_ok:0
+sync_partial_err:0
+expired_keys:0
+evicted_keys:0
+keyspace_hits:106
+keyspace_misses:9
+pubsub_channels:0
+pubsub_patterns:0
+latest_fork_usec:805
+migrate_cached_sockets:0
+  
+<span class="c"># Replication</span>
+role:master
+connected_slaves:0
+master_repl_offset:0
+repl_backlog_active:0
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:0
+repl_backlog_histlen:0
+  
+<span class="c"># CPU</span>
+used_cpu_sys:8.06
+used_cpu_user:3.69
+used_cpu_sys_children:0.01
+used_cpu_user_children:0.01
+  
+<span class="c"># Cluster</span>
+cluster_enabled:0
+  
+<span class="c"># Keyspace</span>
+db0:keys<span class="o">=</span>2,expires<span class="o">=</span>0,avg_ttl<span class="o">=</span>0
+db1:keys<span class="o">=</span>1,expires<span class="o">=</span>0,avg_ttl<span class="o">=</span>0
+db2:keys<span class="o">=</span>3,expires<span class="o">=</span>0,avg_ttl<span class="o">=</span>0
+db3:keys<span class="o">=</span>3,expires<span class="o">=</span>0,avg_ttl<span class="o">=</span>0
+db4:keys<span class="o">=</span>3,expires<span class="o">=</span>0,avg_ttl<span class="o">=</span>0
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>如果只需要获取某一个方面的信息，可以使用 info 加上需要的信息名称即可。示例：<strong>info CPU</strong></p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379[4]&gt; info Keyspace
+<span class="c"># Keyspace</span>
+db0:keys<span class="o">=</span>2,expires<span class="o">=</span>0,avg_ttl<span class="o">=</span>0
+db1:keys<span class="o">=</span>1,expires<span class="o">=</span>0,avg_ttl<span class="o">=</span>0
+db2:keys<span class="o">=</span>3,expires<span class="o">=</span>0,avg_ttl<span class="o">=</span>0
+db3:keys<span class="o">=</span>3,expires<span class="o">=</span>0,avg_ttl<span class="o">=</span>0
+db4:keys<span class="o">=</span>3,expires<span class="o">=</span>0,avg_ttl<span class="o">=</span>0
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h4 id="136-推出连接">1.3.6 推出连接</h4>
+
+<ul>
+  <li>使用<code class="highlighter-rouge">quit</code>命令表示推出</li>
+</ul>
+
+<h2 id="二redis的持久化">二、<code class="highlighter-rouge">Redis</code>的持久化</h2>
+
+<h4 id="21-redis-的持久化">2.1 redis 的持久化</h4>
+
+<p>redis 的高性能是由于其将所有数据都存储在了内存中，为了使redis 在重启之后仍能保持数据不丢失，需要将数据从内存中同步到硬盘中，这一过程就是持久化。</p>
+
+<p>redis 支持两种方式的持久化，一种是<code class="highlighter-rouge">RDB</code> 方式，一种是<code class="highlighter-rouge">AOF</code>方式，可以单独使用其中一种或将两种结合使用。</p>
+
+<h4 id="22-rdb-持久化">2.2 RDB 持久化</h4>
+
+<p>RDB 方式的持久化是通过快照（snapshotting）完成的，当符合一定条件时 redis 会自动将内存中的数据进行快照持久化到硬盘。</p>
+
+<p><strong>RDB 是Redis 默认采用的持久化方式</strong>，在 redis.conf 配置文件中默认有此下配置：</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># save开头的一行就是持久化配置，可以配置多个条件(每行配置一个条件)，每个条件之间是"或"的关系</span>
+<span class="c"># 表示 15分钟(900秒)内至少1 个键被更改则进行快照</span>
+save 900 1
+<span class="c"># 表示 5分钟(300秒)内至少10个键被修改则进行快照</span>
+save 300 10
+<span class="c"># </span>
+save 60 10000
+</code></pre></div></div>
+
+<p>Redis 启动后会读取 RDB 快照文件，将数据从硬盘载入到内存中。根据数据量大小与结构和服务性能不同，这个时间也不同。通常将记录一千万个字符串型键、大小为 1GB 的快照文件载入到内存中需要花费 20～ 30秒。</p>
+
+<p>如果开启了 RDB ，Redis 默认会在启动当前服务的目录自动创建数据文件。通过 RDB 方式实现持久化，一旦 redis 异常退出，就会丢失最后一次快照以后更改的所有数据。这就需要开发者根据具体的应用场景，通过组合设置自动快照条件的方式来将可能发生的数据损失控制在能够接受的范围。如果数据很重要以至于无法承受任何损失，则可以考虑使用 AOF 方式进行持久化。</p>
+
+<blockquote>
+  <p>注意：由于快照方式是在一定间隔时间做一次的，所以如果 redis 意外当机的话，就会 丢失最后一次快照后的所有数据修改。</p>
+</blockquote>
+
+<h4 id="23-aof-持久化">2.3 AOF 持久化</h4>
+
+<p>默认情况下 redis 没有开启 AOF( append only file) 方式的持久化，可以通过 appendonly 参数开启：<code class="highlighter-rouge">appendonly yes</code></p>
+
+<p>开启 AOF 持久化后每执行一条会更改 Redis 中的数据的命令， Redis 就会将该命令写入硬盘中的 AOF 文件。AOF 文件的保存位置和 RDB 文件的位置相同，都是通过 dir 参数设置的，默认的文件名是<code class="highlighter-rouge">appendonly.aof</code>，可以通过 appendfilename 参数修改：<code class="highlighter-rouge">appendfilename appendonly.aof</code></p>
+
+<p>这种日志追加方式 redis 会将每一个收到的写命令都通过 write 函数追加到文件中(默认appendonly.aof)。当redis 重启时会通过重新执行文件中保存的写命令来在内存中重建整个数据库的内容。当然由于操作系统会在内核中缓存 write 做过的修改，所以可能不是立即写到磁盘上。这样的持久护额还是有可能会丢失部分修改。不过我们可以通过配置文件告诉 redis 我们想要通过<code class="highlighter-rouge">fsync</code>函数强制操作系统写入到磁盘的时机。有三种方式如下：(默认是：每秒 fsync 一次)</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="c"># 启用日志追加持久化方式</span>
+appendonly <span class="nb">yes</span>
+
+<span class="c"># 每次收到写命令就立即强制写入磁盘，最慢的，但是保证完全 的持久化，不推荐使用</span>
+<span class="c"># appendfsync always</span>
+<span class="c"># 每秒钟强制写入磁盘一次，在性能和持久化方面做了很好的折 中，推荐</span>
+appendfsync everysec
+<span class="c"># 完全依赖操作系统，性能最好,持久化没保证</span>
+<span class="c">#appendfsync no</span>
+</code></pre></div></div>
+
+<p>使用 AOF 方式同时带来另一个问题：持久化文件会变得越来越大。例如我们调用 incr test 命令 100次，文件中必须全部保存 100 条命令，其实有 99条 都是多余的。因为要恢复数据库状态其实文件中保存一条 set test 100 就够了。为了压缩这种持久化方式的日志文件，redis 提供了<code class="highlighter-rouge">bgrewriteaof</code>命令。收到此命令 redis 将使用与快照类似的方式将内存中的数据以命令的方式保存到临时文件中，最后替换原来的持久化日志文件。</p>
+:ET

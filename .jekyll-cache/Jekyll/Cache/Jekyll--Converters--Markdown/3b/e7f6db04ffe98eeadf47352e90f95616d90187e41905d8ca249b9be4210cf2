@@ -1,0 +1,917 @@
+I"�-<h2 id="前言">前言</h2>
+
+<ul>
+  <li><a href="https://www.cnblogs.com/qlqwjy/p/9763754.html">redis实现消息队列&amp;发布/订阅模式使用</a></li>
+</ul>
+
+<h2 id="一redis-实现消息队列">一、Redis 实现消息队列</h2>
+
+<h3 id="11-redis-列表类型回顾">1.1 Redis 列表类型回顾</h3>
+
+<p>列表类型（list）可以存储一个有序的字符串列表，常用的操作是向列表两端添加元素，或者获得列表的某个片段。列表类型内部是使用<code class="highlighter-rouge">双向链表(double linked list)</code>实现的。可以用来用来实现队列，并且支持阻塞式读取，可以很容易的实现一个高性能的优先队列。list操作回顾<a href="">传送门</a>。</p>
+
+<h3 id="12-java-程序实现消息队列">1.2 Java 程序实现消息队列</h3>
+
+<ul>
+  <li>
+    <p>redis.properties</p>
+
+    <div class="language-properties highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="py">redis.url</span><span class="p">=</span><span class="s">192.168.30.200</span>
+<span class="py">redis.port</span><span class="p">=</span><span class="s">6379</span>
+<span class="py">redis.maxIdle</span><span class="p">=</span><span class="s">30</span>
+<span class="py">redis.minIdle</span><span class="p">=</span><span class="s">10</span>
+<span class="py">redis.maxTotal</span><span class="p">=</span><span class="s">100</span>
+<span class="py">redis.maxWait</span><span class="p">=</span><span class="s">10000</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>使用连接池访问redis</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">JedisPoolUtils</span> <span class="o">{</span>
+  
+    <span class="kd">private</span> <span class="kd">static</span> <span class="nc">JedisPool</span> <span class="n">pool</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+  
+    <span class="kd">static</span> <span class="o">{</span>
+  
+        <span class="c1">//加载配置文件</span>
+        <span class="nc">InputStream</span> <span class="n">in</span> <span class="o">=</span> <span class="nc">JedisPoolUtils</span><span class="o">.</span><span class="na">class</span><span class="o">.</span><span class="na">getClassLoader</span><span class="o">().</span><span class="na">getResourceAsStream</span><span class="o">(</span><span class="s">"redis.properties"</span><span class="o">);</span>
+        <span class="nc">Properties</span> <span class="n">pro</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Properties</span><span class="o">();</span>
+        <span class="k">try</span> <span class="o">{</span>
+            <span class="n">pro</span><span class="o">.</span><span class="na">load</span><span class="o">(</span><span class="n">in</span><span class="o">);</span>
+        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="nc">IOException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+        <span class="o">}</span>
+  
+        <span class="c1">//获得池子对象</span>
+        <span class="nc">JedisPoolConfig</span> <span class="n">poolConfig</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">JedisPoolConfig</span><span class="o">();</span>
+        <span class="n">poolConfig</span><span class="o">.</span><span class="na">setMaxIdle</span><span class="o">(</span><span class="nc">Integer</span><span class="o">.</span><span class="na">parseInt</span><span class="o">(</span><span class="n">pro</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"redis.maxIdle"</span><span class="o">).</span><span class="na">toString</span><span class="o">()));</span><span class="c1">//最大闲置个数</span>
+        <span class="n">poolConfig</span><span class="o">.</span><span class="na">setMaxWaitMillis</span><span class="o">(</span><span class="nc">Integer</span><span class="o">.</span><span class="na">parseInt</span><span class="o">(</span><span class="n">pro</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"redis.maxWait"</span><span class="o">).</span><span class="na">toString</span><span class="o">()));</span><span class="c1">//最大闲置个数</span>
+        <span class="n">poolConfig</span><span class="o">.</span><span class="na">setMinIdle</span><span class="o">(</span><span class="nc">Integer</span><span class="o">.</span><span class="na">parseInt</span><span class="o">(</span><span class="n">pro</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"redis.minIdle"</span><span class="o">).</span><span class="na">toString</span><span class="o">()));</span><span class="c1">//最小闲置个数</span>
+        <span class="n">poolConfig</span><span class="o">.</span><span class="na">setMaxTotal</span><span class="o">(</span><span class="nc">Integer</span><span class="o">.</span><span class="na">parseInt</span><span class="o">(</span><span class="n">pro</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"redis.maxTotal"</span><span class="o">).</span><span class="na">toString</span><span class="o">()));</span><span class="c1">//最大连接数</span>
+        <span class="n">pool</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">JedisPool</span><span class="o">(</span><span class="n">poolConfig</span><span class="o">,</span> <span class="n">pro</span><span class="o">.</span><span class="na">getProperty</span><span class="o">(</span><span class="s">"redis.url"</span><span class="o">),</span> <span class="nc">Integer</span><span class="o">.</span><span class="na">parseInt</span><span class="o">(</span><span class="n">pro</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"redis.port"</span><span class="o">).</span><span class="na">toString</span><span class="o">()));</span>
+    <span class="o">}</span>
+  
+    <span class="c1">//获得jedis资源的方法</span>
+    <span class="kd">public</span> <span class="kd">static</span> <span class="nc">Jedis</span> <span class="nf">getJedis</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">pool</span><span class="o">.</span><span class="na">getResource</span><span class="o">();</span>
+    <span class="o">}</span>
+  
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="nc">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="n">getJedis</span><span class="o">();</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">jedis</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>消息生产者(开启多线程生产消息)</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">MessageProducer</span> <span class="kd">extends</span> <span class="nc">Thread</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">MESSAGE_KEY</span> <span class="o">=</span> <span class="s">"message:queue"</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">volatile</span> <span class="kt">int</span> <span class="n">count</span><span class="o">;</span>
+  
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">putMessage</span><span class="o">(</span><span class="nc">String</span> <span class="n">message</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="nc">JedisPoolUtils</span><span class="o">.</span><span class="na">getJedis</span><span class="o">();</span>
+      	<span class="c1">//jedis.select(1);</span>
+        <span class="nc">Long</span> <span class="n">size</span> <span class="o">=</span> <span class="n">jedis</span><span class="o">.</span><span class="na">lpush</span><span class="o">(</span><span class="no">MESSAGE_KEY</span><span class="o">,</span> <span class="n">message</span><span class="o">);</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="nc">Thread</span><span class="o">.</span><span class="na">currentThread</span><span class="o">().</span><span class="na">getName</span><span class="o">()</span> <span class="o">+</span>
+                           <span class="s">" put message,size="</span> <span class="o">+</span> <span class="n">size</span> <span class="o">+</span> <span class="s">",count="</span> <span class="o">+</span> <span class="n">count</span><span class="o">);</span>
+        <span class="n">count</span><span class="o">++;</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kd">synchronized</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
+            <span class="n">putMessage</span><span class="o">(</span><span class="s">"message"</span> <span class="o">+</span> <span class="n">count</span><span class="o">);</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+  
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="nc">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">MessageProducer</span> <span class="n">messageProducer</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MessageProducer</span><span class="o">();</span>
+        <span class="nc">Thread</span> <span class="n">t1</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Thread</span><span class="o">(</span><span class="n">messageProducer</span><span class="o">,</span> <span class="s">"thread1"</span><span class="o">);</span>
+        <span class="nc">Thread</span> <span class="n">t2</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Thread</span><span class="o">(</span><span class="n">messageProducer</span><span class="o">,</span> <span class="s">"thread2"</span><span class="o">);</span>
+        <span class="nc">Thread</span> <span class="n">t3</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Thread</span><span class="o">(</span><span class="n">messageProducer</span><span class="o">,</span> <span class="s">"thread3"</span><span class="o">);</span>
+        <span class="n">t1</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
+        <span class="n">t2</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
+        <span class="n">t3</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+
+    <ul>
+      <li>
+        <p>运行结果</p>
+
+        <p><img src="/img/images/redis/02/01-redis生产消息.png" /></p>
+
+        <blockquote>
+          <p>Tips：由上图可知，redis 是单线程操作的，只能一个一个的操作。</p>
+        </blockquote>
+      </li>
+      <li>
+        <p>redis 后台查看</p>
+
+        <p><img src="/img/images/redis/02/02-redis客户端查看生产的消息.png" /></p>
+
+        <blockquote>
+          <p>Tips：使用<code class="highlighter-rouge">lrange</code>命令查看数据时可知，<code class="highlighter-rouge">lpush</code>命令插入数据是从左向右操作的。</p>
+        </blockquote>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>消息消费者(开启多线程消息消息)</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">MessageConsumer</span> <span class="kd">implements</span> <span class="nc">Runnable</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">MESSAGE_KEY</span> <span class="o">=</span> <span class="s">"message:queue"</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">volatile</span> <span class="kt">int</span> <span class="n">count</span><span class="o">;</span>
+  
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">consumerMessage</span><span class="o">()</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="nc">JedisPoolUtils</span><span class="o">.</span><span class="na">getJedis</span><span class="o">();</span>
+        <span class="nc">String</span> <span class="n">message</span> <span class="o">=</span> <span class="n">jedis</span><span class="o">.</span><span class="na">rpop</span><span class="o">(</span><span class="no">MESSAGE_KEY</span><span class="o">);</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="nc">Thread</span><span class="o">.</span><span class="na">currentThread</span><span class="o">().</span><span class="na">getName</span><span class="o">()</span> <span class="o">+</span> <span class="s">" consumer message,message="</span> <span class="o">+</span> <span class="n">message</span> <span class="o">+</span> <span class="s">",count="</span> <span class="o">+</span> <span class="n">count</span><span class="o">);</span>
+        <span class="n">count</span><span class="o">++;</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">while</span> <span class="o">(</span><span class="kc">true</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">consumerMessage</span><span class="o">();</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+  
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="nc">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">MessageConsumer</span> <span class="n">messageConsumer</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MessageConsumer</span><span class="o">();</span>
+        <span class="nc">Thread</span> <span class="n">t1</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Thread</span><span class="o">(</span><span class="n">messageConsumer</span><span class="o">,</span> <span class="s">"thread1"</span><span class="o">);</span>
+        <span class="nc">Thread</span> <span class="n">t2</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Thread</span><span class="o">(</span><span class="n">messageConsumer</span><span class="o">,</span> <span class="s">"thread2"</span><span class="o">);</span>
+        <span class="nc">Thread</span> <span class="n">t3</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Thread</span><span class="o">(</span><span class="n">messageConsumer</span><span class="o">,</span> <span class="s">"thread3"</span><span class="o">);</span>
+        <span class="n">t1</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
+        <span class="n">t2</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
+        <span class="n">t3</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+
+    <ul>
+      <li>
+        <p>运行结果</p>
+
+        <p><img src="/img/images/redis/02/03-redis消费消息.png" /></p>
+      </li>
+      <li>
+        <p><code class="highlighter-rouge">运行结果分析</code></p>
+
+        <ul>
+          <li>
+            <p>消费者消费消息时需要<code class="highlighter-rouge">不停</code>的调用 rpop 方法查看 List 队列中是否有待处理的消息。而且消息消费完了，但是还是会不停的调用 rpop方法，从而造成多余的连接浪费。</p>
+
+            <p><img src="/img/images/redis/02/04-redis消费消息.png" /></p>
+          </li>
+          <li>
+            <p>也许你会使用<code class="highlighter-rouge">Thread.sleep（）</code>等方法让消费者线程隔一段时间再消费，但是这样做也会出现如下问题：</p>
+
+            <ul>
+              <li>当生产消息的速度大雨消费消息的速度时，会造成消息队列越来越大，时间久了就会占用大量的内存空间</li>
+              <li>当休眠的时间过程就无法实时消费消息；休眠时间过短，消费不到消息，造成连接资源的浪费。</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="13-brpop和blpop实现阻塞读取">1.3 <code class="highlighter-rouge">brpop</code>和<code class="highlighter-rouge">blpop</code>实现阻塞读取</h3>
+
+<p>为解决上述一直调用 rpop 或 lpop 命令造成的连接浪费。redis 提供了阻塞式命令 brpop 和 blpop 命令。brpop 命令可以接收多个键，其语法：<code class="highlighter-rouge">BRPOP key [key ...] timeout</code>。该命令检测多个键，如果所有键都没有元素则阻塞，如果其中一个有元素则从该键中弹出该元素。</p>
+
+<ul>
+  <li>
+    <p>示例1</p>
+
+    <p><img src="/img/images/redis/02/05-brpop命令.png" /></p>
+
+    <blockquote>
+      <p>Tips：会按照 key 的顺序进行读取，可以实现具有优先级的队列。当队列中无消息时会进行阻塞。</p>
+    </blockquote>
+  </li>
+  <li>
+    <p>测试2：</p>
+
+    <ol>
+      <li>
+        <p>往阻塞的队列中添加消息</p>
+
+        <p><img src="/img/images/redis/02/06-添加消息.png" /></p>
+      </li>
+      <li>
+        <p>查看第一个客户端的阻塞是否放行</p>
+
+        <p><img src="/img/images/redis/02/07-阻塞放行.png" /></p>
+      </li>
+    </ol>
+  </li>
+  <li>
+    <p>使用 brpop 或 blpop 命令优化上述代码</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">NewConsumer</span> <span class="kd">implements</span> <span class="nc">Runnable</span><span class="o">{</span>
+  
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">MESSAGE_KEY</span> <span class="o">=</span> <span class="s">"message:queue"</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="nc">JedisPoolUtils</span><span class="o">.</span><span class="na">getJedis</span><span class="o">();</span>
+  
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">consumerMessage</span><span class="o">()</span> <span class="o">{</span>
+        <span class="c1">//0是timeout,返回的是一个集合，第一个是消息的key，第二个是消息的内容</span>
+        <span class="nc">List</span><span class="o">&lt;</span><span class="nc">String</span><span class="o">&gt;</span> <span class="n">result</span> <span class="o">=</span> <span class="n">jedis</span><span class="o">.</span><span class="na">brpop</span><span class="o">(</span><span class="mi">0</span><span class="o">,</span><span class="no">MESSAGE_KEY</span><span class="o">);</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"brpop result="</span> <span class="o">+</span> <span class="n">result</span><span class="o">);</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">while</span> <span class="o">(</span><span class="kc">true</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">consumerMessage</span><span class="o">();</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+  
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="nc">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+      	<span class="c1">//new NewConsumer().consumerMessage();</span>
+        <span class="nc">NewConsumer</span> <span class="n">consumer</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">NewConsumer</span><span class="o">();</span>
+        <span class="nc">Thread</span> <span class="n">t1</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Thread</span><span class="o">(</span><span class="n">consumer</span><span class="o">,</span> <span class="s">"thread1"</span><span class="o">);</span>
+        <span class="n">t1</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+
+    <ul>
+      <li>
+        <p>先清空数据库，先启动消费者，因为是没有数据的，会阻塞在这里，控制台就没有任何的输出</p>
+      </li>
+      <li>
+        <p>当启动生产者生产消息后，消费者会自动消费消息，消费完毕后会阻塞停滞在这里，知直到有新的消息产生。</p>
+
+        <p><img src="/img/images/redis/02/08-优化消费消息.png" /></p>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="二订阅与发布模式">二、订阅与发布模式</h2>
+
+<h3 id="21-订阅与发布">2.1 订阅与发布</h3>
+
+<p>Redis 通过<code class="highlighter-rouge">PUBLISH</code>、<code class="highlighter-rouge">SUBSCRIBE</code>等命令实现了订阅与发布模式，这个功能提供两种信息机制，分别是订阅/发布到频道和订阅/发布到模式。“发布/订阅”包含了两种角色，分别是消息的发布者和消息的订阅者。订阅者可以订阅一个或多个频道(channel)，而发布者可以向指定的频道(channel)发送消息，所有订阅该频道的订阅者都会收到此消息。</p>
+
+<h3 id="22-订阅发布到频道">2.2 订阅/发布到频道</h3>
+
+<ul>
+  <li>
+    <p>订阅频道</p>
+
+    <ul>
+      <li>
+        <p>Redis 的<code class="highlighter-rouge">SUBSCRIBE</code>命令可以让客户端订阅任意数量的频道，每当有新信息发送到被订阅的频道时，信息就会被发送给所有订阅指定频道的客户端。频道与客户端关系见下图：</p>
+
+        <p><img src="/img/images/redis/02/09-订阅频道.png" /></p>
+      </li>
+      <li>
+        <p>订阅频道使用subscribe 命令，语法：<code class="highlighter-rouge">subscribe channel1 [channel2 ...]</code></p>
+      </li>
+      <li>
+        <p>使用示例：</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; subscribe channel:1
+Reading messages... <span class="o">(</span>press Ctrl-C to quit<span class="o">)</span>
+1<span class="o">)</span> <span class="s2">"subscribe"</span>
+2<span class="o">)</span> <span class="s2">"channel:1"</span>
+3<span class="o">)</span> <span class="o">(</span>integer<span class="o">)</span> 1
+</code></pre></div>        </div>
+
+        <blockquote>
+          <p>Tips：执行上述命令后客户端就进入了订阅状态，处于此状态的客户端不能使用处<code class="highlighter-rouge">subscribe</code>、<code class="highlighter-rouge">unsubscribe</code>、<code class="highlighter-rouge">psubscribe</code>和<code class="highlighter-rouge">punsubscribe</code>这四个属于“发布/订阅”之外的命令否则会报错</p>
+        </blockquote>
+      </li>
+      <li>
+        <p>消息类型的取值：</p>
+
+        <ul>
+          <li>
+            <p><code class="highlighter-rouge">subscribe</code>：表示订阅成功后的反馈，第二个值是订阅的频道名称，第三个值时当前客户端订阅的频道数量。</p>
+
+            <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; subscribe channel:1
+Reading messages... <span class="o">(</span>press Ctrl-C to quit<span class="o">)</span>
+1<span class="o">)</span> <span class="s2">"subscribe"</span>
+2<span class="o">)</span> <span class="s2">"channel:1"</span>
+3<span class="o">)</span> <span class="o">(</span>integer<span class="o">)</span> 1
+</code></pre></div>            </div>
+          </li>
+          <li>
+            <p><code class="highlighter-rouge">message</code>：表示接受到消息的反馈，第二个值表示订阅的频道名称，第三个值表示接受的消息的具体内容</p>
+
+            <ul>
+              <li>
+                <p>发送消息</p>
+
+                <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; publish channel:1 <span class="s1">'hi,silhouette!'</span>
+<span class="o">(</span>integer<span class="o">)</span> 1
+</code></pre></div>                </div>
+              </li>
+              <li>
+                <p>接受消息</p>
+
+                <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1<span class="o">)</span> <span class="s2">"message"</span>
+2<span class="o">)</span> <span class="s2">"channel:1"</span>
+3<span class="o">)</span> <span class="s2">"hi,silhouette!"</span>
+</code></pre></div>                </div>
+              </li>
+            </ul>
+          </li>
+          <li>
+            <p><code class="highlighter-rouge">unsubscribe</code>：表示取消订阅的反馈，第二个值表示取消订阅的频道名称，第三个值表示当前客户端订阅的频道数，当此值为0时会退出订阅状态。</p>
+
+            <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; unsubscribe channel:1
+1<span class="o">)</span> <span class="s2">"unsubscribe"</span>
+2<span class="o">)</span> <span class="s2">"channel:1"</span>
+3<span class="o">)</span> <span class="o">(</span>integer<span class="o">)</span> 0
+</code></pre></div>            </div>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>发布信息</p>
+
+    <ul>
+      <li>
+        <p>当有新的信息通过<code class="highlighter-rouge">PUBLISH</code>命令发送给频道 channel1 时，这个消息就会被发送给订阅它的三个客户端：</p>
+
+        <p><img src="/img/images/redis/02/10-发布消息.png" /></p>
+      </li>
+      <li>
+        <p>发布消息使用 publish命令，语法：<code class="highlighter-rouge">publish channel message</code></p>
+      </li>
+      <li>
+        <p>使用示例：</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; publish channel1:1 hi
+<span class="o">(</span>integer<span class="o">)</span> 0
+</code></pre></div>        </div>
+
+        <blockquote>
+          <p>Tips：返回值表示接受这条消息的订阅者数量。发出去的消息不会被持久化，也就是说客户端订阅 channel1 后只能接受到后续发布到该频道的消息，之前的就接受不到了。</p>
+        </blockquote>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="23-订阅发布到模式">2.3 订阅/发布到模式</h3>
+
+<p>当我们使用<code class="highlighter-rouge">PUBLISH</code>命令发送信息到某个频道时，不仅所有订阅该频道的客户端会收到信息，如果有某个/某些模式和这个频道匹配的话，那么所有订阅这个。这些频道的客户端也同样会收到信息。注意此时使用<code class="highlighter-rouge">psubscribe</code>命令进行订阅频道，此命令支持通配符格式，语法：<code class="highlighter-rouge">psubscribe pattern [pattern ...]</code>。</p>
+
+<blockquote>
+  <p>Tips：<strong>通配符中<code class="highlighter-rouge">?</code>表示一个占位符，<code class="highlighter-rouge">*</code>表示任意个占位符(包括0)，<code class="highlighter-rouge">?*</code>表示1一个以上的占位符</strong></p>
+</blockquote>
+
+<p>下图展示课一个带频带和模式的例子，其中 tweet.shop.* 模式匹配了 tweet.shop.kindle 频道和 tweet.shop.ipad 频道，并且有不同的客户端分别订阅他们三个：</p>
+
+<p><img src="/img/images/redis/02/11-订阅模式.png" /></p>
+
+<ul>
+  <li>
+    <p>当有信息发送到 tweet.shop.kindle 频道时，信息除了发送给 cllientX 和 clientY 之外，还会发送给订阅tweet.shop.* 模式的 client123 和 client256：</p>
+
+    <p><img src="/img/images/redis/02/12-模式匹配1.png" /></p>
+  </li>
+  <li>
+    <p>另一方面，如果接受到信息的是频道tweet.shop.ipad，那么 client123 和 client256同样会接受到信息：</p>
+
+    <p><img src="/img/images/redis/02/13-模式匹配2.png" /></p>
+  </li>
+  <li>
+    <p>实例演示</p>
+
+    <ul>
+      <li>
+        <p>订阅三个频道</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; psubscribe tweet.shop.ipad tweet.shop.<span class="k">*</span> tweet.shop.kindle
+Reading messages... <span class="o">(</span>press Ctrl-C to quit<span class="o">)</span>
+1<span class="o">)</span> <span class="s2">"psubscribe"</span>
+2<span class="o">)</span> <span class="s2">"tweet.shop.ipad"</span>
+3<span class="o">)</span> <span class="o">(</span>integer<span class="o">)</span> 1
+1<span class="o">)</span> <span class="s2">"psubscribe"</span>
+2<span class="o">)</span> <span class="s2">"tweet.shop.*"</span>
+3<span class="o">)</span> <span class="o">(</span>integer<span class="o">)</span> 2
+1<span class="o">)</span> <span class="s2">"psubscribe"</span>
+2<span class="o">)</span> <span class="s2">"tweet.shop.kindle"</span>
+3<span class="o">)</span> <span class="o">(</span>integer<span class="o">)</span> 3
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>向 tweet.shop.kindle 频道发布一个消息</p>
+
+        <ul>
+          <li>
+            <p>发送消息</p>
+
+            <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; publish tweet.shop.kindle hi
+<span class="o">(</span>integer<span class="o">)</span> 2
+</code></pre></div>            </div>
+          </li>
+          <li>
+            <p>接受消息</p>
+
+            <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1<span class="o">)</span> <span class="s2">"pmessage"</span>
+2<span class="o">)</span> <span class="s2">"tweet.shop.*"</span> 			<span class="c"># 监听管道名</span>
+3<span class="o">)</span> <span class="s2">"tweet.shop.kindle"</span>  <span class="c"># 实际管道名</span>
+4<span class="o">)</span> <span class="s2">"hi"</span>
+1<span class="o">)</span> <span class="s2">"pmessage"</span>
+2<span class="o">)</span> <span class="s2">"tweet.shop.kindle"</span>
+3<span class="o">)</span> <span class="s2">"tweet.shop.kindle"</span>
+4<span class="o">)</span> <span class="s2">"hi"</span>
+</code></pre></div>            </div>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <p>向 tweet.shop.ipad 频道发布一个消息</p>
+
+        <ul>
+          <li>
+            <p>发送消息</p>
+
+            <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1:6379&gt; publish tweet.shop.ipad hello
+<span class="o">(</span>integer<span class="o">)</span> 2  <span class="c">#返回值表示接受消息的客户端数</span>
+</code></pre></div>            </div>
+          </li>
+          <li>
+            <p>接受消息</p>
+
+            <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1<span class="o">)</span> <span class="s2">"pmessage"</span>
+2<span class="o">)</span> <span class="s2">"tweet.shop.ipad"</span>
+3<span class="o">)</span> <span class="s2">"tweet.shop.ipad"</span>
+4<span class="o">)</span> <span class="s2">"hello"</span>
+1<span class="o">)</span> <span class="s2">"pmessage"</span>
+2<span class="o">)</span> <span class="s2">"tweet.shop.*"</span>
+3<span class="o">)</span> <span class="s2">"tweet.shop.ipad"</span>
+4<span class="o">)</span> <span class="s2">"hello"</span>
+</code></pre></div>            </div>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <p>取消订阅</p>
+
+        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 语法: punsubscribe [pattern [pattern ...]],如果没有参数则会退订所有规则。</span>
+127.0.0.1:6379&gt; punsubscribe tweet.shop.<span class="k">*</span> 
+1<span class="o">)</span> <span class="s2">"punsubscribe"</span>
+2<span class="o">)</span> <span class="s2">"tweet.shop.*"</span>
+3<span class="o">)</span> <span class="o">(</span>integer<span class="o">)</span> 0
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="24-java-实现发布者订阅者模式">2.4 Java 实现发布者订阅者模式</h3>
+
+<ul>
+  <li>
+    <p>订阅/发布到频道</p>
+
+    <ul>
+      <li>
+        <p>编写消息生产者</p>
+
+        <ul>
+          <li>
+            <p>代码示例</p>
+
+            <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">MessageProducer</span> <span class="kd">extends</span> <span class="nc">Thread</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">CHANNEL_KEY</span> <span class="o">=</span> <span class="s">"mychannel"</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">volatile</span> <span class="kt">int</span> <span class="n">count</span><span class="o">;</span>
+      
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">putMessage</span><span class="o">(</span><span class="nc">String</span> <span class="n">message</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="nc">JedisPoolUtils</span><span class="o">.</span><span class="na">getJedis</span><span class="o">();</span>
+        <span class="nc">Long</span> <span class="n">publish</span> <span class="o">=</span> <span class="n">jedis</span><span class="o">.</span><span class="na">publish</span><span class="o">(</span><span class="no">CHANNEL_KEY</span><span class="o">,</span> <span class="n">message</span><span class="o">);</span><span class="c1">//返回订阅者数量</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="nc">Thread</span><span class="o">.</span><span class="na">currentThread</span><span class="o">().</span><span class="na">getName</span><span class="o">()</span> <span class="o">+</span> <span class="s">" put message,count="</span> 
+                           <span class="o">+</span> <span class="n">count</span><span class="o">+</span><span class="s">",subscriberNum="</span><span class="o">+</span><span class="n">publish</span><span class="o">);</span>
+        <span class="n">count</span><span class="o">++;</span>
+    <span class="o">}</span>
+      
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kd">synchronized</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
+            <span class="n">putMessage</span><span class="o">(</span><span class="s">"message"</span> <span class="o">+</span> <span class="n">count</span><span class="o">);</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+      
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="nc">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">MessageProducer</span> <span class="n">producter</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MessageProducer</span><span class="o">();</span>
+        <span class="nc">Thread</span> <span class="n">t1</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Thread</span><span class="o">(</span><span class="n">producter</span><span class="o">,</span> <span class="s">"thread1"</span><span class="o">);</span>
+        <span class="nc">Thread</span> <span class="n">t2</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Thread</span><span class="o">(</span><span class="n">producter</span><span class="o">,</span> <span class="s">"thread2"</span><span class="o">);</span>
+        <span class="nc">Thread</span> <span class="n">t3</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Thread</span><span class="o">(</span><span class="n">producter</span><span class="o">,</span> <span class="s">"thread3"</span><span class="o">);</span>
+        <span class="n">t1</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
+        <span class="n">t2</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
+        <span class="n">t3</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>            </div>
+          </li>
+          <li>
+            <p>运行结果</p>
+
+            <p><img src="/img/images/redis/02/14-生产消息.png" /></p>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <p>编写<code class="highlighter-rouge">subscribe</code>订阅者</p>
+
+        <ul>
+          <li>
+            <p>代码示例</p>
+
+            <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">MessageClient</span> <span class="kd">implements</span> <span class="nc">Runnable</span> <span class="o">{</span>
+      
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">CHANNEL_KEY</span> <span class="o">=</span> <span class="s">"mychannel"</span><span class="o">;</span><span class="c1">//频道</span>
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">EXIT_COMMAND</span> <span class="o">=</span> <span class="s">"exit"</span><span class="o">;</span><span class="c1">//结束程序的消息</span>
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">QUIT_COMMAND</span> <span class="o">=</span> <span class="s">"unsubscribe"</span><span class="o">;</span><span class="c1">//取消订阅</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">consumerMessage</span><span class="o">()</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="nc">JedisPoolUtils</span><span class="o">.</span><span class="na">getJedis</span><span class="o">();</span>
+        <span class="c1">//第一个参数是处理接收消息，第二个参数是订阅的消息频道</span>
+        <span class="n">jedis</span><span class="o">.</span><span class="na">subscribe</span><span class="o">(</span><span class="k">new</span> <span class="nc">MyJedisPubSub</span><span class="o">(),</span> <span class="no">CHANNEL_KEY</span><span class="o">);</span>
+    <span class="o">}</span>
+      
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">while</span> <span class="o">(</span><span class="kc">true</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">consumerMessage</span><span class="o">();</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+      
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="nc">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">MessageClient</span> <span class="n">messageConsumer</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MessageClient</span><span class="o">();</span>
+        <span class="nc">Thread</span> <span class="n">t1</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Thread</span><span class="o">(</span><span class="n">messageConsumer</span><span class="o">,</span> <span class="s">"thread1"</span><span class="o">);</span>
+        <span class="n">t1</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+      
+<span class="cm">/**
+ * 继承JedisPubSub，重写接收消息的方法
+ */</span>
+<span class="kd">class</span> <span class="nc">MyJedisPubSub</span> <span class="kd">extends</span> <span class="nc">JedisPubSub</span> <span class="o">{</span>
+    <span class="nd">@Override</span>
+    <span class="cm">/** JedisPubSub类是一个没有抽象方法的抽象类,里面方法都是一些空实现
+     * 所以可以选择需要的方法覆盖,这儿使用的是SUBSCRIBE指令，所以覆盖了onMessage
+     * 如果使用PSUBSCRIBE指令，则覆盖onPMessage方法
+     * 当然也可以选择BinaryJedisPubSub,同样是抽象类，但方法参数为byte[]
+     **/</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onMessage</span><span class="o">(</span><span class="nc">String</span> <span class="n">channel</span><span class="o">,</span> <span class="nc">String</span> <span class="n">message</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="nc">Thread</span><span class="o">.</span><span class="na">currentThread</span><span class="o">().</span><span class="na">getName</span><span class="o">()+</span><span class="s">"-接收到消息:channel="</span> <span class="o">+</span> 
+                           <span class="n">channel</span> <span class="o">+</span> <span class="s">",message="</span> <span class="o">+</span> <span class="n">message</span><span class="o">);</span>
+        <span class="c1">//接收到exit消息后退出</span>
+        <span class="k">if</span> <span class="o">(</span><span class="nc">MessageClient</span><span class="o">.</span><span class="na">EXIT_COMMAND</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">message</span><span class="o">))</span> <span class="o">{</span>
+            <span class="nc">System</span><span class="o">.</span><span class="na">exit</span><span class="o">(</span><span class="mi">0</span><span class="o">);</span>
+        <span class="o">}</span><span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="nc">MessageClient</span><span class="o">.</span><span class="na">QUIT_COMMAND</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">message</span><span class="o">)){</span>
+            <span class="n">unsubscribe</span><span class="o">(</span><span class="n">channel</span><span class="o">);</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+        	
+  	<span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">unsubscribe</span><span class="o">(</span><span class="nc">String</span><span class="o">...</span> <span class="n">channels</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"执行取消订阅操作"</span><span class="o">);</span>
+        <span class="kd">super</span><span class="o">.</span><span class="na">unsubscribe</span><span class="o">(</span><span class="n">channels</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>            </div>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <p>测试：先启动消费者，再启动生产者，查看两者控制台的输出</p>
+
+        <p><img src="/img/images/redis/02/15-订阅频道.png" /></p>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>订阅/发布到模式</p>
+
+    <ul>
+      <li>
+        <p>编写<code class="highlighter-rouge">psubscribe</code>订阅者</p>
+
+        <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">MessageNewClient</span> <span class="kd">implements</span> <span class="nc">Runnable</span><span class="o">{</span>
+    
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">CHANNEL_KEY</span> <span class="o">=</span> <span class="s">"channel*"</span><span class="o">;</span><span class="c1">//频道</span>
+    
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">EXIT_COMMAND</span> <span class="o">=</span> <span class="s">"exit"</span><span class="o">;</span><span class="c1">//结束程序的消息</span>
+    
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">consumerMessage</span><span class="o">()</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="nc">JedisPoolUtils</span><span class="o">.</span><span class="na">getJedis</span><span class="o">();</span>
+        <span class="n">jedis</span><span class="o">.</span><span class="na">psubscribe</span><span class="o">(</span><span class="k">new</span> <span class="nc">MineJedisPubSub</span><span class="o">(),</span> <span class="no">CHANNEL_KEY</span><span class="o">);</span>
+    <span class="o">}</span>
+    
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">while</span> <span class="o">(</span><span class="kc">true</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">consumerMessage</span><span class="o">();</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+    
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="nc">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">MessageNewClient</span> <span class="n">client</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MessageNewClient</span><span class="o">();</span>
+        <span class="nc">Thread</span> <span class="n">t1</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Thread</span><span class="o">(</span><span class="n">client</span><span class="o">,</span><span class="s">"thread1"</span><span class="o">);</span>
+        <span class="n">t1</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
+    <span class="o">}</span>
+    
+<span class="o">}</span>
+<span class="cm">/**
+ * 继承JedisPubSub，重写接收消息的方法
+ */</span>
+<span class="kd">class</span> <span class="nc">MineJedisPubSub</span> <span class="kd">extends</span> <span class="nc">JedisPubSub</span> <span class="o">{</span>
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onPMessage</span><span class="o">(</span><span class="nc">String</span> <span class="n">pattern</span><span class="o">,</span> <span class="nc">String</span> <span class="n">channel</span><span class="o">,</span> <span class="nc">String</span> <span class="n">message</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="nc">Thread</span><span class="o">.</span><span class="na">currentThread</span><span class="o">().</span><span class="na">getName</span><span class="o">()+</span><span class="s">"-接收到消息:pattern="</span><span class="o">+</span><span class="n">pattern</span><span class="o">+</span><span class="s">",channel="</span> 
+                           <span class="o">+</span> <span class="n">channel</span> <span class="o">+</span> <span class="s">",message="</span> <span class="o">+</span> <span class="n">message</span><span class="o">);</span>
+        <span class="c1">//接收到exit消息后退出</span>
+        <span class="k">if</span> <span class="o">(</span><span class="nc">MessageNewClient</span><span class="o">.</span><span class="na">EXIT_COMMAND</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">message</span><span class="o">))</span> <span class="o">{</span>
+            <span class="nc">System</span><span class="o">.</span><span class="na">exit</span><span class="o">(</span><span class="mi">0</span><span class="o">);</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>        </div>
+
+        <blockquote>
+          <p>Tips：更多操作请查看<code class="highlighter-rouge">JedisPubSub</code>类的相关属性和方法</p>
+        </blockquote>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="25-spring-实现发布订阅模式">2.5 Spring 实现发布/订阅模式</h3>
+
+<ol>
+  <li>
+    <p>pom.xml导入依赖包</p>
+
+    <div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;dependencies&gt;</span>
+    <span class="c">&lt;!-- Spring --&gt;</span>
+    <span class="nt">&lt;dependency&gt;</span>
+      <span class="nt">&lt;groupId&gt;</span>org.springframework<span class="nt">&lt;/groupId&gt;</span>
+      <span class="nt">&lt;artifactId&gt;</span>spring-context<span class="nt">&lt;/artifactId&gt;</span>
+      <span class="nt">&lt;version&gt;</span>${spring.version}<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;/dependency&gt;</span>
+    <span class="nt">&lt;dependency&gt;</span>
+      <span class="nt">&lt;groupId&gt;</span>org.springframework<span class="nt">&lt;/groupId&gt;</span>
+      <span class="nt">&lt;artifactId&gt;</span>spring-beans<span class="nt">&lt;/artifactId&gt;</span>
+      <span class="nt">&lt;version&gt;</span>${spring.version}<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;/dependency&gt;</span>
+    <span class="nt">&lt;dependency&gt;</span>
+      <span class="nt">&lt;groupId&gt;</span>org.springframework<span class="nt">&lt;/groupId&gt;</span>
+      <span class="nt">&lt;artifactId&gt;</span>spring-webmvc<span class="nt">&lt;/artifactId&gt;</span>
+      <span class="nt">&lt;version&gt;</span>${spring.version}<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;/dependency&gt;</span>
+    <span class="nt">&lt;dependency&gt;</span>
+      <span class="nt">&lt;groupId&gt;</span>org.springframework<span class="nt">&lt;/groupId&gt;</span>
+      <span class="nt">&lt;artifactId&gt;</span>spring-jdbc<span class="nt">&lt;/artifactId&gt;</span>
+      <span class="nt">&lt;version&gt;</span>${spring.version}<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;/dependency&gt;</span>
+    <span class="nt">&lt;dependency&gt;</span>
+      <span class="nt">&lt;groupId&gt;</span>org.springframework<span class="nt">&lt;/groupId&gt;</span>
+      <span class="nt">&lt;artifactId&gt;</span>spring-aspects<span class="nt">&lt;/artifactId&gt;</span>
+      <span class="nt">&lt;version&gt;</span>${spring.version}<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;/dependency&gt;</span>
+    <span class="nt">&lt;dependency&gt;</span>
+      <span class="nt">&lt;groupId&gt;</span>org.springframework<span class="nt">&lt;/groupId&gt;</span>
+      <span class="nt">&lt;artifactId&gt;</span>spring-jms<span class="nt">&lt;/artifactId&gt;</span>
+      <span class="nt">&lt;version&gt;</span>${spring.version}<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;/dependency&gt;</span>
+    <span class="nt">&lt;dependency&gt;</span>
+      <span class="nt">&lt;groupId&gt;</span>org.springframework<span class="nt">&lt;/groupId&gt;</span>
+      <span class="nt">&lt;artifactId&gt;</span>spring-context-support<span class="nt">&lt;/artifactId&gt;</span>
+      <span class="nt">&lt;version&gt;</span>${spring.version}<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;/dependency&gt;</span>
+    <span class="nt">&lt;dependency&gt;</span>
+      <span class="nt">&lt;groupId&gt;</span>org.springframework<span class="nt">&lt;/groupId&gt;</span>
+      <span class="nt">&lt;artifactId&gt;</span>spring-test<span class="nt">&lt;/artifactId&gt;</span>
+      <span class="nt">&lt;version&gt;</span>${spring.version}<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;/dependency&gt;</span>
+    <span class="nt">&lt;dependency&gt;</span>
+      <span class="nt">&lt;groupId&gt;</span>junit<span class="nt">&lt;/groupId&gt;</span>
+      <span class="nt">&lt;artifactId&gt;</span>junit<span class="nt">&lt;/artifactId&gt;</span>
+      <span class="nt">&lt;version&gt;</span>4.12<span class="nt">&lt;/version&gt;</span>
+      <span class="nt">&lt;scope&gt;</span>test<span class="nt">&lt;/scope&gt;</span>
+    <span class="nt">&lt;/dependency&gt;</span>
+    <span class="c">&lt;!-- https://mvnrepository.com/artifact/redis.clients/jedis --&gt;</span>
+    <span class="nt">&lt;dependency&gt;</span>
+      <span class="nt">&lt;groupId&gt;</span>redis.clients<span class="nt">&lt;/groupId&gt;</span>
+      <span class="nt">&lt;artifactId&gt;</span>jedis<span class="nt">&lt;/artifactId&gt;</span>
+      <span class="nt">&lt;version&gt;</span>2.9.0<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;/dependency&gt;</span>
+    <span class="c">&lt;!-- https://mvnrepository.com/artifact/org.springframework.data/spring-data-redis --&gt;</span>
+    <span class="nt">&lt;dependency&gt;</span>
+      <span class="nt">&lt;groupId&gt;</span>org.springframework.data<span class="nt">&lt;/groupId&gt;</span>
+      <span class="nt">&lt;artifactId&gt;</span>spring-data-redis<span class="nt">&lt;/artifactId&gt;</span>
+      <span class="nt">&lt;version&gt;</span>2.1.8.RELEASE<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;/dependency&gt;</span>
+    <span class="nt">&lt;dependency&gt;</span>
+      <span class="nt">&lt;groupId&gt;</span>org.springframework.data<span class="nt">&lt;/groupId&gt;</span>
+      <span class="nt">&lt;artifactId&gt;</span>spring-data-jpa<span class="nt">&lt;/artifactId&gt;</span>
+      <span class="nt">&lt;version&gt;</span>2.1.8.RELEASE<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;/dependency&gt;</span>
+    <span class="nt">&lt;dependency&gt;</span>
+      <span class="nt">&lt;groupId&gt;</span>org.springframework.data<span class="nt">&lt;/groupId&gt;</span>
+      <span class="nt">&lt;artifactId&gt;</span>spring-data-commons<span class="nt">&lt;/artifactId&gt;</span>
+      <span class="nt">&lt;version&gt;</span>2.1.8.RELEASE<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;/dependency&gt;</span>
+<span class="nt">&lt;/dependencies&gt;</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>spring整合redis发布订阅配置文件</p>
+
+    <ol>
+      <li>
+        <p>redis.properties</p>
+
+        <pre><code class="language-prop">redis.host=192.168.0.112
+redis.port=6379
+redis.maxIdle=30
+redis.minIdle=10
+redis.maxTotal=100
+redis.maxWait=10000
+redis.maxWaitMillis=1000
+redis.blockWhenExhausted=true
+redis.testOnBorrow=true
+redis.db=0
+</code></pre>
+      </li>
+      <li>
+        <p>applicationContext-redis.xml</p>
+
+        <div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="nt">&lt;beans</span> <span class="na">xmlns=</span><span class="s">"http://www.springframework.org/schema/beans"</span>
+       <span class="na">xmlns:xsi=</span><span class="s">"http://www.w3.org/2001/XMLSchema-instance"</span> 
+       <span class="na">xmlns:p=</span><span class="s">"http://www.springframework.org/schema/p"</span>
+       <span class="na">xmlns:aop=</span><span class="s">"http://www.springframework.org/schema/aop"</span>
+       <span class="na">xmlns:context=</span><span class="s">"http://www.springframework.org/schema/context"</span>
+       <span class="na">xmlns:jee=</span><span class="s">"http://www.springframework.org/schema/jee"</span> 
+       <span class="na">xmlns:tx=</span><span class="s">"http://www.springframework.org/schema/tx"</span>
+       <span class="na">xmlns:cache=</span><span class="s">"http://www.springframework.org/schema/cache"</span>
+       <span class="na">xmlns:redis=</span><span class="s">"http://www.springframework.org/schema/redis"</span>
+       <span class="na">xsi:schemaLocation=</span><span class="s">"http://www.springframework.org/schema/aop 
+                           http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+                           http://www.springframework.org/schema/beans 
+                           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+                           http://www.springframework.org/schema/context 
+                           http://www.springframework.org/schema/context/spring-context-3.0.xsd
+									http://www.springframework.org/schema/jee
+                           http://www.springframework.org/schema/jee/spring-jee-3.0.xsd
+                           http://www.springframework.org/schema/tx 
+                           http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+                           http://www.springframework.org/schema/redis 
+                           http://www.springframework.org/schema/redis/spring-redis.xsd"</span>
+       <span class="na">default-autowire=</span><span class="s">"byName"</span><span class="nt">&gt;</span>
+      
+    <span class="c">&lt;!-- 加载redis配置 --&gt;</span>
+    <span class="nt">&lt;context:property-placeholder</span> <span class="na">location=</span><span class="s">"classpath:redis.properties"</span> <span class="nt">/&gt;</span>
+      
+    <span class="nt">&lt;bean</span> <span class="na">id=</span><span class="s">"jedisPoolConfig"</span> <span class="na">class=</span><span class="s">"redis.clients.jedis.JedisPoolConfig"</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"maxIdle"</span> <span class="na">value=</span><span class="s">"${redis.maxIdle}"</span> <span class="nt">/&gt;</span>
+        <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"minIdle"</span> <span class="na">value=</span><span class="s">"${redis.minIdle}"</span> <span class="nt">/&gt;</span>
+        <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"maxWaitMillis"</span> <span class="na">value=</span><span class="s">"${redis.maxWait}"</span> <span class="nt">/&gt;</span>
+        <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"testOnBorrow"</span> <span class="na">value=</span><span class="s">"${redis.testOnBorrow}"</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;/bean&gt;</span>
+    <span class="c">&lt;!-- redis服务器中心 --&gt;</span>
+    <span class="nt">&lt;bean</span> <span class="na">id=</span><span class="s">"connectionFactory"</span> 
+          <span class="na">class=</span><span class="s">"org.springframework.data.redis.connection.jedis.JedisConnectionFactory"</span>
+          <span class="na">p:host-name=</span><span class="s">"${redis.host}"</span> <span class="na">p:port=</span><span class="s">"${redis.port}"</span>
+           <span class="na">p:database=</span><span class="s">"${redis.db}"</span> <span class="na">p:pool-config-ref=</span><span class="s">"jedisPoolConfig"</span><span class="nt">/&gt;</span>
+      
+    <span class="nt">&lt;bean</span> <span class="na">id=</span><span class="s">"redisTemplate"</span> <span class="na">class=</span><span class="s">"org.springframework.data.redis.core.RedisTemplate"</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"connectionFactory"</span> <span class="na">ref=</span><span class="s">"connectionFactory"</span> <span class="nt">/&gt;</span>
+        <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"keySerializer"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;bean</span> <span class="na">class=</span><span class="s">"org.springframework.data.redis.serializer.StringRedisSerializer"</span> <span class="nt">/&gt;</span>
+        <span class="nt">&lt;/property&gt;</span>
+        <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"valueSerializer"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;bean</span> <span class="na">class=</span><span class="s">"org.springframework.data.redis.serializer.JdkSerializationRedisSerializer"</span> <span class="nt">/&gt;</span>
+        <span class="nt">&lt;/property&gt;</span>
+        <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"hashKeySerializer"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;bean</span> <span class="na">class=</span><span class="s">"org.springframework.data.redis.serializer.StringRedisSerializer"</span> <span class="nt">/&gt;</span>
+        <span class="nt">&lt;/property&gt;</span>
+        <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"hashValueSerializer"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;bean</span> <span class="na">class=</span><span class="s">"org.springframework.data.redis.serializer.JdkSerializationRedisSerializer"</span> <span class="nt">/&gt;</span>
+        <span class="nt">&lt;/property&gt;</span>
+        <span class="c">&lt;!--开启事务  --&gt;</span>
+        <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"enableTransactionSupport"</span> <span class="na">value=</span><span class="s">"true"</span><span class="nt">&gt;&lt;/property&gt;</span>
+    <span class="nt">&lt;/bean&gt;</span>
+      
+    <span class="c">&lt;!-- 定义Spring Redis的序列化器 --&gt;</span>
+    <span class="c">&lt;!-- String序列化 --&gt;</span>
+    <span class="nt">&lt;bean</span> <span class="na">id=</span><span class="s">"stringRedisSerializer"</span> 
+          <span class="na">class=</span><span class="s">"org.springframework.data.redis.serializer.StringRedisSerializer"</span><span class="nt">/&gt;</span>
+    <span class="c">&lt;!-- jdk序列化--&gt;</span>
+    <span class="nt">&lt;bean</span> <span class="na">id=</span><span class="s">"jdkSerializer"</span> 
+          <span class="na">class=</span><span class="s">"org.springframework.data.redis.serializer.JdkSerializationRedisSerializer"</span><span class="nt">/&gt;</span>
+      
+      
+    <span class="c">&lt;!-- 将监听实现类注册到spring容器中 --&gt;</span>
+    <span class="nt">&lt;bean</span> <span class="na">id=</span><span class="s">"redisMessageListener"</span> <span class="na">class=</span><span class="s">"com.silhouette.listener.RedisMessageListener"</span><span class="nt">/&gt;</span>
+      
+    <span class="nt">&lt;bean</span> <span class="na">id=</span><span class="s">"topicContainer"</span>  
+          <span class="na">class=</span><span class="s">"org.springframework.data.redis.listener.RedisMessageListenerContainer"</span>
+          <span class="na">destroy-method=</span><span class="s">"destroy"</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"connectionFactory"</span> <span class="na">ref=</span><span class="s">"connectionFactory"</span> <span class="nt">/&gt;</span>
+        <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"taskExecutor"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;bean</span> <span class="na">class=</span><span class="s">"org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler"</span><span class="nt">&gt;</span>
+                <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"poolSize"</span> <span class="na">value=</span><span class="s">"3"</span><span class="nt">&gt;&lt;/property&gt;</span>
+            <span class="nt">&lt;/bean&gt;</span>
+        <span class="nt">&lt;/property&gt;</span>
+        <span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"messageListeners"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;map&gt;</span>
+                <span class="nt">&lt;entry</span> <span class="na">key-ref=</span><span class="s">"redisMessageListener"</span><span class="nt">&gt;</span>
+                    <span class="nt">&lt;bean</span> <span class="na">class=</span><span class="s">"org.springframework.data.redis.listener.ChannelTopic"</span><span class="nt">&gt;</span>
+                        <span class="c">&lt;!--channel--&gt;</span>
+                        <span class="nt">&lt;constructor-arg</span> <span class="na">value=</span><span class="s">"mychannel"</span> <span class="nt">/&gt;</span>
+                    <span class="nt">&lt;/bean&gt;</span>
+                <span class="nt">&lt;/entry&gt;</span>
+            <span class="nt">&lt;/map&gt;</span>
+        <span class="nt">&lt;/property&gt;</span>
+    <span class="nt">&lt;/bean&gt;</span>
+<span class="nt">&lt;/beans&gt;</span>
+</code></pre></div>        </div>
+      </li>
+    </ol>
+  </li>
+  <li>
+    <p>在web.xml 文件中配置加载spring容器</p>
+
+    <div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">&lt;!-- 加载spring容器 --&gt;</span>
+<span class="nt">&lt;context-param&gt;</span>
+    <span class="nt">&lt;param-name&gt;</span>contextConfigLocation<span class="nt">&lt;/param-name&gt;</span>
+    <span class="nt">&lt;param-value&gt;</span>classpath:spring/applicationContext-redis.xml<span class="nt">&lt;/param-value&gt;</span>
+<span class="nt">&lt;/context-param&gt;</span>
+<span class="nt">&lt;listener&gt;</span>
+  	<span class="nt">&lt;listener-class&gt;</span>org.springframework.web.context.ContextLoaderListener<span class="nt">&lt;/listener-class&gt;</span>
+<span class="nt">&lt;/listener&gt;</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>发布消息</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@RunWith</span><span class="o">(</span><span class="nc">SpringJUnit4ClassRunner</span><span class="o">.</span><span class="na">class</span><span class="o">)</span>
+<span class="nd">@ContextConfiguration</span><span class="o">(</span><span class="n">locations</span><span class="o">=</span> <span class="o">{</span><span class="s">"classpath:spring/applicationContext-redis.xml"</span><span class="o">})</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">MessageTest</span> <span class="o">{</span>
+   
+    <span class="nd">@Autowired</span>
+    <span class="kd">private</span> <span class="nc">RedisTemplate</span> <span class="n">redisTemplate</span><span class="o">;</span>
+   
+    <span class="nd">@Test</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">testRedis</span><span class="o">(){</span>
+        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
+            <span class="n">redisTemplate</span><span class="o">.</span><span class="na">convertAndSend</span><span class="o">(</span><span class="s">"mychannel"</span><span class="o">,</span> <span class="s">"第"</span> <span class="o">+</span> <span class="n">i</span> <span class="o">+</span> <span class="s">"次发送信息"</span><span class="o">);</span>
+        <span class="o">}</span>
+        <span class="c1">//redis做缓存</span>
+		  <span class="n">redisTemplate</span><span class="o">.</span><span class="na">opsForValue</span><span class="o">().</span><span class="na">set</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span><span class="s">"silhouette"</span><span class="o">);</span>
+        <span class="nc">String</span> <span class="n">name</span> <span class="o">=</span> <span class="o">(</span><span class="nc">String</span><span class="o">)</span> <span class="n">redisTemplate</span><span class="o">.</span><span class="na">opsForValue</span><span class="o">().</span><span class="na">get</span><span class="o">(</span><span class="s">"name"</span><span class="o">);</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">name</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>订阅消息</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kd">class</span> <span class="nc">RedisMessageListener</span>  <span class="kd">implements</span> <span class="nc">MessageListener</span> <span class="o">{</span>
+   
+    <span class="kd">protected</span> <span class="kd">final</span> <span class="nc">Logger</span> <span class="n">logger</span> <span class="o">=</span> <span class="nc">LoggerFactory</span><span class="o">.</span><span class="na">getLogger</span><span class="o">(</span><span class="k">this</span><span class="o">.</span><span class="na">getClass</span><span class="o">());</span>
+   
+    <span class="kd">protected</span> <span class="nc">RedisTemplate</span> <span class="n">redisTemplate</span><span class="o">;</span>
+   
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setRedisTemplate</span><span class="o">(</span><span class="nc">RedisTemplate</span> <span class="n">redisTemplate</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">redisTemplate</span> <span class="o">=</span> <span class="n">redisTemplate</span><span class="o">;</span>
+    <span class="o">}</span>
+   
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onMessage</span><span class="o">(</span><span class="nc">Message</span> <span class="n">message</span><span class="o">,</span> <span class="kt">byte</span><span class="o">[]</span> <span class="n">pattern</span><span class="o">)</span> <span class="o">{</span>
+        <span class="kt">byte</span><span class="o">[]</span> <span class="n">body</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="na">getBody</span><span class="o">();</span><span class="c1">// 请使用valueSerializer</span>
+        <span class="kt">byte</span><span class="o">[]</span> <span class="n">channel</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="na">getChannel</span><span class="o">();</span>
+        <span class="c1">// 请参考配置文件，本例中key，value的序列化方式均为string。</span>
+        <span class="c1">// 其中key必须为stringSerializer和redisTemplate.convertAndSend对应</span>
+        <span class="nc">String</span> <span class="n">itemValue</span> <span class="o">=</span> <span class="o">(</span><span class="nc">String</span><span class="o">)</span> <span class="n">redisTemplate</span><span class="o">.</span><span class="na">getValueSerializer</span><span class="o">().</span><span class="na">deserialize</span><span class="o">(</span><span class="n">body</span><span class="o">);</span>
+        <span class="nc">String</span> <span class="n">topic</span> <span class="o">=</span> <span class="o">(</span><span class="nc">String</span><span class="o">)</span> <span class="n">redisTemplate</span><span class="o">.</span><span class="na">getStringSerializer</span><span class="o">().</span><span class="na">deserialize</span><span class="o">(</span><span class="n">channel</span><span class="o">);</span>
+        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"频道："</span> <span class="o">+</span> <span class="n">topic</span> <span class="o">+</span> <span class="s">"，收到的消息内容是："</span> <span class="o">+</span> <span class="n">itemValue</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>运行测试</p>
+
+    <p><img src="/img/images/redis/02/16-Spring整合redis.png" /></p>
+  </li>
+</ol>
+
+:ET

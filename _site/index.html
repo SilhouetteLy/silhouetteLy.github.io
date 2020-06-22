@@ -155,6 +155,135 @@
             ">
     			
 <div class="post-preview">
+    <a href="/2020/06/20/redis03/">
+        <h2 class="post-title">
+            03_Redis集群搭建
+        </h2>
+        
+        <h3 class="post-subtitle">
+            搭建Redis集群环境并与Spring整合使用
+        </h3>
+        
+        <div class="post-content-preview">
+            前言
+
+
+  
+    redis集群简介
+  
+  
+    redis的三种集群方式
+  
+
+
+一、Redis 的主从复制
+
+1.1 什么是主从复制
+
+持久化保证了即使 redis 服务重启也不会丢失数据，因为redis 服务重启后会将硬盘上持久化的数据恢复到内存中，但是当 redis 服务器的硬盘损坏了可能会导致数据丢失，如果通过redis 的主从复制机制就可以避免这种单点故障。
+
+
+...
+        </div>
+    </a>
+    <p class="post-meta">
+        Posted by silhouette on June 20, 2020
+    </p>
+</div>
+<hr>
+
+<div class="post-preview">
+    <a href="/2020/06/18/redis02/">
+        <h2 class="post-title">
+            02_Redis 发布与订阅模式
+        </h2>
+        
+        <h3 class="post-subtitle">
+            redis实现消息队列&发布/订阅模式使用。
+        </h3>
+        
+        <div class="post-content-preview">
+            前言
+
+
+  redis实现消息队列&amp;发布/订阅模式使用
+
+
+一、Redis 实现消息队列
+
+1.1 Redis 列表类型回顾
+
+列表类型（list）可以存储一个有序的字符串列表，常用的操作是向列表两端添加元素，或者获得列表的某个片段。列表类型内部是使用双向链表(double linked list)实现的。可以用来用来实现队列，并且支持阻塞式读取，可以很容易的实现一个高性能的优先队...
+        </div>
+    </a>
+    <p class="post-meta">
+        Posted by silhouette on June 18, 2020
+    </p>
+</div>
+<hr>
+
+<div class="post-preview">
+    <a href="/2020/06/17/redis01/">
+        <h2 class="post-title">
+            01_Redis的数据操作
+        </h2>
+        
+        <h3 class="post-subtitle">
+            Redis 的五大数据类型及其数据运算。
+        </h3>
+        
+        <div class="post-content-preview">
+            一、Redis 的数据操作
+
+1.1 Redis 的 key
+
+redis 的 Key 是字符串类型，但是 Key 中不能包含边界字符，由于 key 不是 binary safe 的字符串，所以想“my key”和“mykey\n”这样的包含空格和换行的 key 是不允许的。
+
+1.2 Redis 的 value
+
+redis 提供五种数据类型：String类型、hash类型、list类型、...
+        </div>
+    </a>
+    <p class="post-meta">
+        Posted by silhouette on June 17, 2020
+    </p>
+</div>
+<hr>
+
+<div class="post-preview">
+    <a href="/2020/06/16/redis00/">
+        <h2 class="post-title">
+            00_Redis初识
+        </h2>
+        
+        <h3 class="post-subtitle">
+            Redis 是一个开源的使用 ANSI C 语言编写、支持网络、可基于内存亦可持久化的日志型、Key-Value 数据库。
+        </h3>
+        
+        <div class="post-content-preview">
+            前言
+
+因为手上的一个项目要用到 Redis，所以就利用空余时间来的学习一下 Redis。之前有了解过 Redis及其一些简单的使用，但是知识点太零碎了，所以打算系统的学习一下 Redis，并将学习过程记录下来，以供后期复习和巩固。废话不多说，那我们就开始吧！！！
+
+一、Redis 初识
+
+1.1 NoSQL 介绍
+
+1.1.1 什么是 NoSQL
+
+NoSQL
+
+
+  NoSQL(NoSQ...
+        </div>
+    </a>
+    <p class="post-meta">
+        Posted by silhouette on June 16, 2020
+    </p>
+</div>
+<hr>
+
+<div class="post-preview">
     <a href="/2020/06/14/nginx02/">
         <h2 class="post-title">
             02_Nginx配置示例
@@ -323,132 +452,6 @@ Sailboats was originally created for a project called Seagull Orchestra, but Ada
 </div>
 <hr>
 
-<div class="post-preview">
-    <a href="/2020/05/18/lucene/">
-        <h2 class="post-title">
-            Lucene初识
-        </h2>
-        
-        <h3 class="post-subtitle">
-            Lucene是一个Java开发的全文检索工具包
-        </h3>
-        
-        <div class="post-content-preview">
-            一、全文检索技术
-
-1.1 数据分类
-
-
-  
-    我们生活中的数据总体分为两种：结构化数据和非结构化数据。
-
-    
-      
-        结构化数据：指具有固定格式或有限长度的数据，如数据库，元数据等。
-      
-      
-        非结构化数据：指不定长或无固定格式的数据，如邮件，word文档等磁盘上的文件
-      
-    
-  
-
-
-1.2 数据的查...
-        </div>
-    </a>
-    <p class="post-meta">
-        Posted by silhouette on May 18, 2020
-    </p>
-</div>
-<hr>
-
-<div class="post-preview">
-    <a href="/2020/05/08/silhouette/">
-        <h2 class="post-title">
-            Silhouette
-        </h2>
-        
-        <h3 class="post-subtitle">
-            But the more I try to move on, the more I feel alone
-        </h3>
-        
-        <div class="post-content-preview">
-            前言
-
-“Silhouette”, A sentimental, introspective, and bittersweet song, is about someone who feels anxious, heartbroken, alone, and struggles with regret, but is encouraged that life will not always ...
-        </div>
-    </a>
-    <p class="post-meta">
-        Posted by silhouette on May 8, 2020
-    </p>
-</div>
-<hr>
-
-<div class="post-preview">
-    <a href="/2020/04/30/spring-transaction/">
-        <h2 class="post-title">
-            Spring的事务管理
-        </h2>
-        
-        <h3 class="post-subtitle">
-            Spring事务管理与事务回滚
-        </h3>
-        
-        <div class="post-content-preview">
-            前言
-
-一直对Spring的事务管理理解不够透测，并且开发时老是会出现报错后事务未回滚的情况，此次正好有时间整理一下，好好的把Spring的事务管理的实现与事务回滚弄清楚。以下内容设计到的参考资料有：
-
-
-  Spring事务管理之几种方式实现事务
-  Spring中@Transactional用法深度分析之一
-  @Transactional
-  spring事物配置，声明式事务管理和基于...
-        </div>
-    </a>
-    <p class="post-meta">
-        Posted by silhouette on April 30, 2020
-    </p>
-</div>
-<hr>
-
-<div class="post-preview">
-    <a href="/2020/04/30/blog-update-one/">
-        <h2 class="post-title">
-            个人博客功能完善
-        </h2>
-        
-        <h3 class="post-subtitle">
-            Jekyll添加相关功能按钮
-        </h3>
-        
-        <div class="post-content-preview">
-            前言
-
-想对刚搭建好的博客添加一些常用的功能，如返回顶部、全文搜索等。以下内容参考资料有：
-
-
-  Jekyll博文内链和返回顶部按钮
-  Jekyll search组件
-
-
-添加返回按钮块
-
-只需两步就可以在页面添加一个固定的返回顶部按钮，这里没有加JS代码，没什么漂亮的效果，只是功能的实现。
-
-
-  
-    在 footer.html文件中添加样式
-
-    &lt;div id="b...
-        </div>
-    </a>
-    <p class="post-meta">
-        Posted by silhouette on April 30, 2020
-    </p>
-</div>
-<hr>
-
 
 <!-- Pager -->
 
@@ -501,7 +504,7 @@ Sailboats was originally created for a project called Seagull Orchestra, but Ada
                             
                         
                             
-                                <a href="/tags/#Nginx" title="Nginx" rel="2">
+                                <a href="/tags/#Nginx" title="Nginx" rel="4">
                                     Nginx
                                 </a>
                             
@@ -510,6 +513,10 @@ Sailboats was originally created for a project called Seagull Orchestra, but Ada
                         
                             
                         
+                            
+                                <a href="/tags/#Redis" title="Redis" rel="4">
+                                    Redis
+                                </a>
                             
                         
                     </div>

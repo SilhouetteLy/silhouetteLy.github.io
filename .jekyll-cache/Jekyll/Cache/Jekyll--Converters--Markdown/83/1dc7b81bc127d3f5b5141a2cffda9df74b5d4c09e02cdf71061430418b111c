@@ -1,0 +1,795 @@
+I"��<h2 id="前言">前言</h2>
+
+<ul>
+  <li>
+    <p><a href="https://www.cnblogs.com/vieta/p/11192137.html">redis集群简介</a></p>
+  </li>
+  <li>
+    <p><a href="https://www.cnblogs.com/51life/p/10233340.html">redis的三种集群方式</a></p>
+  </li>
+</ul>
+
+<h2 id="一redis-的主从复制">一、Redis 的主从复制</h2>
+
+<h4 id="11-什么是主从复制">1.1 什么是主从复制</h4>
+
+<p>持久化保证了即使 redis 服务重启也不会丢失数据，因为redis 服务重启后会将硬盘上持久化的数据恢复到内存中，但是当 redis 服务器的硬盘损坏了可能会导致数据丢失，如果通过redis 的主从复制机制就可以避免这种单点故障。</p>
+
+<p><img src="/img/images/redis/01/01-主从复制.png" /></p>
+
+<p>说明：</p>
+
+<ul>
+  <li>主 redis 中的数据有两个副本(replication)即从redis1 和 从redis2，即使一台 redis 服务器宕机其他两台 redis 服务器也可以继续提供服务</li>
+  <li><strong>主redis 中的数据和从 redis 上的数据保持实时同步</strong>，当主 redis 写入数据时通过主从复制机制复制到两个从 redis 服务上。</li>
+  <li>只有一个 redis ，可以有多个从 redis</li>
+  <li>主从复制不会阻塞 master ，在同步数据时，master 可以继续处理 client 请求</li>
+</ul>
+
+<h4 id="12-主从复制实现">1.2 主从复制实现</h4>
+
+<p>在 redis 从服务器上添加其对应的主服务器的信息，修改从 redis 服务器上的 redis.conf 文件，添加 slaveof 主 redis 服务器的 IP 和端口号</p>
+
+<p><img src="/img/images/redis/03/11-主从复制配置实现.png" /></p>
+
+<p>启动主从服务器之后即完成了对 Redis 主从复制的配置。</p>
+
+<ul>
+  <li>
+    <p>架构图如下：</p>
+
+    <p><img src="/img/images/redis/03/12-一主二仆.png" /></p>
+  </li>
+  <li>
+    <p>日志输出</p>
+
+    <p><img src="/img/images/redis/03/18-一主双从.png" /></p>
+  </li>
+</ul>
+
+<h4 id="13测试主从复制机制">1.3测试主从复制机制</h4>
+
+<ul>
+  <li>
+    <p>一个Master，两个Slave，Slave只能读不能写</p>
+
+    <ul>
+      <li>
+        <p>操作主机</p>
+
+        <p><img src="/img/images/redis/03/13-操作主机.png" /></p>
+      </li>
+      <li>
+        <p>操作从机</p>
+
+        <p><img src="/img/images/redis/03/14-操作从机.png" /></p>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>Master挂掉后，Master关系依然存在，Master重启即可恢复。<code class="highlighter-rouge">先关闭master的 redis 进程</code></p>
+
+    <ul>
+      <li>
+        <p>停掉主机，通过从机查看信息</p>
+
+        <p><img src="/img/images/redis/03/15-停掉主机.png" /></p>
+      </li>
+      <li>
+        <p>重启主机，通过分级查看信息可知，主机重启，master恢复</p>
+
+        <p><img src="/img/images/redis/03/16-操作从机1.png" /></p>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>当Master挂掉后，Slave可键入命令 <code class="highlighter-rouge">slaveof no one</code>使当前redis停止与其他Master redis数据同步，转成Master redis。</p>
+
+    <p><img src="/img/images/redis/03/17-反客为主.png" /></p>
+  </li>
+</ul>
+
+<h4 id="14-主从复制优缺点">1.4 主从复制优缺点</h4>
+
+<p>优点</p>
+
+<ul>
+  <li>支持主从复制，主机会自动将数据同步到从机，可以进行读写分离</li>
+  <li>为了分在分载 Master 的读操作压力，Slave 服务器可以为客户端提供只读操作的服务，写服务仍然由Master 来完成</li>
+  <li>Slave 同样可以接受其他Slaves 的连接和请求，这样可以有效的分载 Master的同步压力</li>
+  <li>Master 服务器是以非阻塞的方式为 Slaves 提供服务。所以在 Master 服务器同步期间，客户端仍然可以提交查询或修改请求</li>
+  <li>Slave服务器同样是以非阻塞的方式完成数据同步。在同步期间，如果有客户端提交查询请求，Redis 则返回同步之前的数据</li>
+</ul>
+
+<p>缺点</p>
+
+<ul>
+  <li>Redis 不具备自动容错和恢复功能，主机从机的宕机都会导致前端部分写请求失败，需要等待机器重启或者手动切换前端的IP才能恢复。</li>
+  <li>主机宕机，宕机前有部分数据未能及时同步到从机，切换IP 后还会引入数据不一致的问题，降低了系统的可用性。</li>
+  <li>redis 较难支持在线扩容，在集群容量达到上限时在线扩容就变很复杂。</li>
+</ul>
+
+<h2 id="二sentinel哨兵模式">二、Sentinel哨兵模式</h2>
+
+<h4 id="21-主从模式的缺陷">2.1 主从模式的缺陷</h4>
+
+<p>上述主从模式中我们可以看到，当master server宕机后，可以通过指令来将一个从服务器升级为主服务器，以便继续提供服务，但是这个过程得人工操作完成。为了完善这个缺陷，redis 2.8 版本后提供了哨兵机制来实现自动化的系统监控和故障恢复功能。</p>
+
+<p><img src="/img/images/redis/03/21-redis哨兵模式.png" /></p>
+
+<p>哨兵模式的作用就是监控 redis 系统的运行状态。它的主要功能包括如下三点：</p>
+
+<ol>
+  <li><strong>监控(Monitoring)</strong>：Sentinel 会不断地检查你的主服务器和从服务器是否运行正常</li>
+  <li><strong>提醒(Notification)</strong>：当被监控的某个 Redis 服务器出现问题时，Sentinel 可以通过 API 向管理员或者其他应用程序发送通知</li>
+  <li><strong>自动故障迁移(Automatic Failover)</strong>：当一个主服务器不能正常工作时，Sentinel会开始一次自动故障迁移操作，它会进行自动选举，将其中一个从服务器升级为主服务器，并让失效主服务器的其他从服务器改为复制新的主服务器；当客户端试图连接失效的主服务器时，集群也会向客户端返回新主服务器的地址，是得集群可以使用新主服务器代替失效服务器。</li>
+</ol>
+
+<h4 id="22-哨兵的工作方式">2.2 哨兵的工作方式</h4>
+
+<ul>
+  <li>每个Sentinel（哨兵）进程以每秒钟一次的频率向整个集群中的Master主服务器，Slave从服务器以及其他Sentinel（哨兵）进程发送一个 PING 命令。</li>
+  <li>如果一个实例（instance）距离最后一次有效回复 PING 命令的时间超过 down-after-milliseconds 选项所指定的值， 则这个实例会被 Sentinel（哨兵）进程标记为主观下线（SDOWN）</li>
+  <li>如果一个Master主服务器被标记为主观下线（SDOWN），则正在监视这个Master主服务器的所有 Sentinel（哨兵）进程要以每秒一次的频率确认Master主服务器的确进入了主观下线状态</li>
+  <li>当有足够数量的 Sentinel（哨兵）进程（大于等于配置文件指定的值）在指定的时间范围内确认Master主服务器进入了主观下线状态（SDOWN）， 则Master主服务器会被标记为客观下线（ODOWN）</li>
+  <li>在一般情况下， 每个 Sentinel（哨兵）进程会以每 10 秒一次的频率向集群中的所有Master主服务器、Slave从服务器发送 INFO 命令。</li>
+  <li>当Master主服务器被 Sentinel（哨兵）进程标记为客观下线（ODOWN）时，Sentinel（哨兵）进程向下线的 Master主服务器的所有 Slave从服务器发送 INFO 命令的频率会从 10 秒一次改为每秒一次。</li>
+  <li>若没有足够数量的 Sentinel（哨兵）进程同意 Master主服务器下线， Master主服务器的客观下线状态就会被移除。若 Master主服务器重新向 Sentinel（哨兵）进程发送 PING 命令返回有效回复，Master主服务器的主观下线状态就会被移除。</li>
+</ul>
+
+<h4 id="23-自动故障切换">2.3 自动故障切换</h4>
+
+<p>监控同一个Master的Sentinel 会自动互联，组成一个分布式的 Sentinel网络，互联通信并交换彼此关于被监视服务器的信息。下图中，三个监控 s1 的Sentinel ，自动组成Sentinel 网络结构。</p>
+
+<p><img src="/img/images/redis/03/22-自动故障切换.png" /></p>
+
+<blockquote>
+  <p>Tips：当只有一个Sentinel 的时候，如果这个Sentinel 挂掉了，那么就无法显示自动故障切换了，所以必须使用sentinel网络。在此网络结构中，只要有一个 Sentinel存活，即可完成故障迁移。</p>
+</blockquote>
+
+<ul>
+  <li>故障迁移的过程
+    <ol>
+      <li>投票机制(半数原则)
+        <ul>
+          <li>当任何一个 Sentinel 发现被监控的 Master 下线时，会通知其他的Sentinel开会，投票确定该Master 是否下线(半数以上，所有 Sentinel 通常配奇数个)</li>
+        </ul>
+      </li>
+      <li>选举
+        <ul>
+          <li>当Sentinel收到 Master下线的通知后，会在所有的Slave中，选举一个新的节点，升级为 Master节点。其他Slaves节点转变为该节点的从节点</li>
+        </ul>
+      </li>
+      <li>原 Master 重新上线
+        <ul>
+          <li>当原Master 节点重新上线后，自动转为当前master节点的从节点</li>
+        </ul>
+      </li>
+    </ol>
+  </li>
+</ul>
+
+<h4 id="24-哨兵模式实现">2.4 哨兵模式实现</h4>
+
+<ol>
+  <li>
+    <p>环境搭建</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 前提：已经存在一个正在运行的主从模式</span>
+<span class="nv">$ </span><span class="nb">cd</span> /usr/local
+<span class="nv">$ </span>mdkir redis-sentinel
+<span class="nv">$ </span><span class="nb">cd </span>redis-sentinel
+<span class="nv">$ </span><span class="nb">cp</span> <span class="nt">-r</span> /usr/local/redis-master-slave/<span class="k">*</span> ./
+<span class="nv">$ </span><span class="nb">cp</span> /usr/local/redis/bin/redis-sentinel ./
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>配置 Sentinel</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 配置三个Sentinel实例，监控同一个Master节点</span>
+<span class="nv">$ </span><span class="nb">mkdir </span>s1 s2 s3
+<span class="nv">$ </span><span class="nb">cp</span> /usr/local/redis-3.0.0/sentinel.conf  ./s1
+<span class="nv">$ </span><span class="nb">cp</span> /usr/local/redis-3.0.0/sentinel.conf  ./s2
+<span class="nv">$ </span><span class="nb">cp</span> /usr/local/redis-3.0.0/sentinel.conf  ./s3
+<span class="c"># 依次修改s1、s2、s3子目录中的sentinel.conf文件，修改端口，并指定要监控的主节点</span>
+ port 26379
+ <span class="c">#                主节点别名 主节点地址 端口  触发故障切换的最少哨兵数</span>
+ sentinel monitor mymaster 127.0.0.1 6380 2
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>启动三个哨兵示实例，并观察日志输出</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 新开三个窗口，分次启动sentinel实例</span>
+<span class="nv">$ </span><span class="nb">cd</span> /usr/local/redis-sentinel/
+<span class="nv">$ </span>./redis-sentinel ./s1/sentinel.conf 
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>测试</p>
+
+    <ol>
+      <li>
+        <p>关闭master服务，查看日志发现，会重新制定一个新master</p>
+
+        <p><img src="/img/images/redis/03/19-选举.png" /></p>
+
+        <ul>
+          <li>
+            <p>可以在客户端使用info 命令查看信息</p>
+
+            <p><img src="/img/images/redis/03/110测试状态.png" /></p>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <p>再次上线6380节点。发现，6380节点成为了新的主节点的从节点。</p>
+
+        <p><img src="/img/images/redis/03/112-主变从.png" /></p>
+      </li>
+    </ol>
+  </li>
+</ol>
+
+<h4 id="25哨兵模式的优缺点">2.5哨兵模式的优缺点</h4>
+
+<p><strong>优点：</strong></p>
+
+<ul>
+  <li>哨兵模式是基于主从模式的，所有主从的优点，哨兵模式都具有。</li>
+  <li>主从可以自动切换，系统更健壮，可用性更高。</li>
+</ul>
+
+<p><strong>缺点：</strong></p>
+
+<ul>
+  <li>Redis较难支持在线扩容，在集群容量达到上限时在线扩容会变得很复杂。</li>
+</ul>
+
+<h2 id="三redis-cluster-集群的搭建">三、Redis-Cluster 集群的搭建</h2>
+
+<h3 id="31-redis-集群架构分析">3.1 redis 集群架构分析</h3>
+
+<p>单个 redis 服务不仅读写能力有限，而且不稳定，当redis宕机时，就没有可用的服务了，为了解决这一问题，如是引入了redis集群这一概念。集群就是将多个系统连接到一起，使多台服务器能够向一台机器那样工作或者看起来好像一台机器的技术。即redis 集群就是多个redis 服务同时提供服务，避免因一个redis 服务宕机导致整个服务消失的问题，并且redis 集群也强化=了单体服务的读写能力。</p>
+
+<p>redis集群中，每一个redis称之为一个节点。为了使在部分节点失败或者大部分节点无法通信的情况下集群仍然可用，所以集群使用了主从复制模型,每个节点都会有N-1个复制品，redis-cluster 见下图：</p>
+
+<p><img src="/img/images/redis/03/01-redis-cluster.png" /></p>
+
+<p>redis 中没有leader 和 follower的概念，所有的节点都是平等的。即判断节点存活使用的是<code class="highlighter-rouge">投票容错机制</code></p>
+
+<p><img src="/img/images/redis/03/02-投票容错.png" /></p>
+
+<p>架构细节：</p>
+
+<ol>
+  <li>所有的 redis 机诶单彼此互联(PING-PONG 机制)，内部使用二进制协议优化传输速度和带宽。</li>
+  <li>节点的 fail 是通过集群中超过半数的节点检测失效时才会生效。</li>
+  <li>客户端与 redis 节点直连，不需要中间 proxy 层，客户端不需要连接集群所有节点，连接集群中任意一个可用节点即可。</li>
+  <li>redis-cluster 把所有的物理节点映射到 [0~16383] slot 上，cluster 负责维护，node &lt; - &gt; slot &lt;-&gt; value。
+    <ul>
+      <li>redis 集群中内置了 16383 个哈希槽，当需要在 redis 集群中放置一个 key-value 时，redis 先对 key 使用 crc16 算法算出一个结果，然后把结果对 16383 求余数，这样每个 key 都会对应一个编号在 0～16383 之间的哈希槽，redis 会根据节点数量大致均等的将哈希槽映射到不同的节点。</li>
+      <li>一个服务器一个槽，即redis集群中节点最多为16384，因为redis集群中就内置了 16383 个哈希槽</li>
+    </ul>
+  </li>
+</ol>
+
+<h3 id="32-redis-集群的搭建">3.2 Redis 集群的搭建</h3>
+
+<p>Redis 集群中至少应该有三个节点。要保证集群的高可用，需要每个节点有一个备份机。redis 集群至少需要 6台服务器。搭建为分布式。可以使用一台虚拟机运行 6个 redis 实例。需要修改 redis 的端口号7001～7006</p>
+
+<h4 id="321-集群环境搭建">3.2.1 集群环境搭建</h4>
+
+<ol>
+  <li>
+    <p>使用 ruby 脚本搭建集群。需要 ruby 的运行环境。</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>yum <span class="nb">install </span>ruby
+<span class="nv">$ </span>yum <span class="nb">install </span>rubygems
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>安装 ruby 脚本运行使用的包，将 redis -3.0.0.gem.tar.gz 上传到根目录</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span> <span class="nb">mv </span>redis-3.0.0.gem /usr/local/
+<span class="nv">$ </span>gem <span class="nb">install </span>redis-3.0.0.gem 
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>拷贝 redis -3.0.0/src 下的 ruby 脚本到 redis -cluster 下</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span> <span class="nb">mkdir</span> /usr/local/redis-cluster
+<span class="nv">$ </span> <span class="nb">cp</span> /usr/local/redis-3.0.0/src/redis-trib.rb /usr/local/redis-cluster/
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>在redis -cluster 复制6个单机版的redis</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cd</span> /usr/local
+<span class="nv">$ </span><span class="nb">cp</span> <span class="nt">-r</span> redis redis-cluster/redis7001
+<span class="nv">$ </span><span class="nb">cp</span> <span class="nt">-r</span> redis redis-cluster/redis7002
+<span class="nv">$ </span><span class="nb">cp</span> <span class="nt">-r</span> redis redis-cluster/redis7003
+<span class="nv">$ </span><span class="nb">cp</span> <span class="nt">-r</span> redis redis-cluster/redis7004
+<span class="nv">$ </span><span class="nb">cp</span> <span class="nt">-r</span> redis redis-cluster/redis7005
+<span class="nv">$ </span><span class="nb">cp</span> <span class="nt">-r</span> redis redis-cluster/redis7006
+</code></pre></div>    </div>
+
+    <p><img src="/img/images/redis/03/03-集群环境搭建.png" /></p>
+  </li>
+</ol>
+
+<h4 id="322-搭建步骤">3.2.2 搭建步骤</h4>
+
+<ol>
+  <li>
+    <p>修改修改端口号和 cluster-enable</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span> <span class="nb">cd</span> /usr/local/redis-cluster/redis7001/bin
+<span class="c"># 必须保证redis 服务是空的</span>
+<span class="nv">$ </span><span class="nb">rm</span> <span class="nt">-rf</span> appendonly.aof dump.rdb 
+<span class="nv">$ </span><span class="nb">cd</span> /usr/local/redis-cluster/redis7001/etc
+<span class="nv">$ </span>vim redis.conf
+	<span class="c"># 修改端口</span>
+	port 7001
+	<span class="c"># cluster-enable属性</span>
+	cluster-enabled <span class="nb">yes</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>启动每个redis 实例</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vim start-all.sh
+<span class="c">##编写如下内容</span>
+<span class="nb">cd </span>redis7001/bin
+ ./redis-server ../etc/redis.conf
+<span class="nb">cd</span> ../../
+<span class="nb">cd </span>redis7002/bin
+ ./redis-server ../etc/redis.conf
+<span class="nb">cd</span> ../../
+<span class="nb">cd </span>redis7003/bin
+ ./redis-server ../etc/redis.conf
+<span class="nb">cd</span> ../../
+<span class="nb">cd </span>redis7004/bin
+ ./redis-server ../etc/redis.conf
+<span class="nb">cd</span> ../../
+<span class="nb">cd </span>redis7005/bin
+ ./redis-server ../etc/redis.conf
+<span class="nb">cd</span> ../../
+<span class="nb">cd </span>redis7006/bin
+ ./redis-server ../etc/redis.conf
+<span class="nb">cd</span> ../../
+<span class="c">##保存文件并退出</span>
+<span class="c"># 修改批出里文件权限</span>
+<span class="nv">$ </span><span class="nb">chmod </span>u+x start-all.sh
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>测试启动脚本</p>
+
+    <p><img src="/img/images/redis/03/04-测试启动.png" /></p>
+  </li>
+  <li>
+    <p>创建关闭集群的脚本</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span> vim shutdown-all.sh
+<span class="c">##编写如下内容</span>
+./redis7001/bin/redis-cli <span class="nt">-p</span> 7001 shutdown
+./redis7002/bin/redis-cli <span class="nt">-p</span> 7002 shutdown
+./redis7003/bin/redis-cli <span class="nt">-p</span> 7003 shutdown
+./redis7004/bin/redis-cli <span class="nt">-p</span> 7004 shutdown
+./redis7005/bin/redis-cli <span class="nt">-p</span> 7005 shutdown
+./redis7006/bin/redis-cli <span class="nt">-p</span> 7006 shutdown
+<span class="c">##保存文件并退出</span>
+<span class="c"># 修改批出里文件权限</span>
+<span class="nv">$ </span><span class="nb">chmod </span>u+x shutdown-all.sh
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>使用 ruby 脚本搭建集群</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>./start-all.sh
+<span class="nv">$ </span>./redis-trib.rb create <span class="nt">--replicas</span> 1 192.168.0.112:7001 192.168.0.112:7002 192.168.0.112:7003 192.168.0.112:7004 192.168.0.112:7005 192.168.0.112:7006
+</code></pre></div>    </div>
+
+    <p><img src="/img/images/redis/03/05-ruby启动脚本.png" /></p>
+
+    <p><img src="/img/images/redis/03/06-ruby脚本测试.png" /></p>
+  </li>
+</ol>
+
+<h4 id="323-集群的使用方法">3.2.3 集群的使用方法</h4>
+
+<p>使用 redis-cli 命令连接集群，使用参数<code class="highlighter-rouge">-p</code>指定连接的端口，<code class="highlighter-rouge">-c</code>代表连接的是 redis 集群</p>
+
+<p><img src="/img/images/redis/03/07-测试.png" /></p>
+
+<h2 id="四使用jedis-操作-redis">四、使用Jedis 操作 redis</h2>
+
+<p>需要把 jedis 依赖的 jar 包添加到工程中。Maven 工程中需要把 jedis 的坐标添加到依赖。</p>
+
+<h3 id="41-使用java-客户端连接redis集群版">4.1 使用Java 客户端连接redis集群版</h3>
+
+<p>实现步骤：</p>
+
+<ol>
+  <li>使用 JedisCluster 对象。需要一个 Set<HostAndPort>参数。Redis 节点的列表。</HostAndPort></li>
+  <li>直接使用 JedisCluster 对象操作 redis 。在系统中单例存在。</li>
+  <li>打印结果</li>
+  <li>系统关闭前，关闭 JedisCluster 对象。</li>
+</ol>
+
+<p>代码实现：</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testJedisCluster</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">IOException</span> <span class="o">{</span>
+    <span class="c1">// 创建jedisCluster对象</span>
+    <span class="nc">Set</span><span class="o">&lt;</span><span class="nc">HostAndPort</span><span class="o">&gt;</span> <span class="n">nodes</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">HashSet</span><span class="o">&lt;</span><span class="nc">HostAndPort</span><span class="o">&gt;();</span>
+    <span class="n">nodes</span><span class="o">.</span><span class="na">add</span><span class="o">(</span> <span class="k">new</span> <span class="nc">HostAndPort</span><span class="o">(</span><span class="s">"192.168.0.112"</span> <span class="o">,</span> <span class="mi">7001</span><span class="o">));</span>
+    <span class="n">nodes</span><span class="o">.</span><span class="na">add</span><span class="o">(</span> <span class="k">new</span> <span class="nc">HostAndPort</span><span class="o">(</span><span class="s">"192.168.0.112"</span> <span class="o">,</span> <span class="mi">7002</span><span class="o">));</span>
+    <span class="n">nodes</span><span class="o">.</span><span class="na">add</span><span class="o">(</span> <span class="k">new</span> <span class="nc">HostAndPort</span><span class="o">(</span><span class="s">"192.168.0.112"</span> <span class="o">,</span> <span class="mi">7003</span><span class="o">));</span>
+    <span class="n">nodes</span><span class="o">.</span><span class="na">add</span><span class="o">(</span> <span class="k">new</span> <span class="nc">HostAndPort</span><span class="o">(</span><span class="s">"192.168.0.112"</span> <span class="o">,</span> <span class="mi">7004</span><span class="o">));</span>
+    <span class="n">nodes</span><span class="o">.</span><span class="na">add</span><span class="o">(</span> <span class="k">new</span> <span class="nc">HostAndPort</span><span class="o">(</span><span class="s">"192.168.0.112"</span> <span class="o">,</span> <span class="mi">7005</span><span class="o">));</span>
+    <span class="n">nodes</span><span class="o">.</span><span class="na">add</span><span class="o">(</span> <span class="k">new</span> <span class="nc">HostAndPort</span><span class="o">(</span><span class="s">"192.168.0.112"</span> <span class="o">,</span> <span class="mi">7006</span><span class="o">));</span>
+    <span class="nc">JedisCluster</span> <span class="n">jedisCluster</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">JedisCluster</span><span class="o">(</span><span class="n">nodes</span><span class="o">);</span>
+    <span class="c1">// 操作数据库</span>
+    <span class="n">jedisCluster</span><span class="o">.</span><span class="na">set</span><span class="o">(</span> <span class="s">"name"</span><span class="o">,</span> <span class="s">" silhouette"</span> <span class="o">);</span>
+    <span class="nc">String</span> <span class="n">str</span> <span class="o">=</span> <span class="n">jedisCluster</span><span class="o">.</span><span class="na">get</span><span class="o">(</span> <span class="s">"name"</span> <span class="o">);</span>
+    <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span> <span class="n">str</span> <span class="o">);</span>
+    <span class="c1">// 关闭资源</span>
+    <span class="n">jedisCluster</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>【注意：运行报错】</p>
+
+<p><img src="/img/images/redis/03/08-集群版连接报错.png" /></p>
+
+<p>【解决方案】</p>
+
+<p>方法一：查看代码中的配置是否有空格之类的，我就是这个问题</p>
+
+<p>方法二：删除以上所有里面这个node.conf文件，将redis.conf 文件中 bind 命令绑定具体的IP ，然后通过上述的ruby 脚本重新搭建集群。<a href="https://blog.csdn.net/xiaoguaihu12/article/details/56845473">参考链接</a></p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">$</span> <span class="o">./</span><span class="n">start</span><span class="o">-</span><span class="n">all</span><span class="o">.</span><span class="na">sh</span>
+<span class="err">$</span> <span class="o">./</span><span class="n">redis</span><span class="o">-</span><span class="n">trib</span><span class="o">.</span><span class="na">rb</span> <span class="n">create</span> <span class="o">--</span><span class="n">replicas</span> <span class="mi">1</span> <span class="mf">192.168</span><span class="o">.</span><span class="mf">0.112</span><span class="o">:</span><span class="mi">7001</span> <span class="mf">192.168</span><span class="o">.</span><span class="mf">0.112</span><span class="o">:</span><span class="mi">7002</span> <span class="mf">192.168</span><span class="o">.</span><span class="mf">0.112</span><span class="o">:</span><span class="mi">7003</span> <span class="mf">192.168</span><span class="o">.</span><span class="mf">0.112</span><span class="o">:</span><span class="mi">7004</span> <span class="mf">192.168</span><span class="o">.</span><span class="mf">0.112</span><span class="o">:</span><span class="mi">7005</span> <span class="mf">192.168</span><span class="o">.</span><span class="mf">0.112</span><span class="o">:</span><span class="mi">7006</span>
+</code></pre></div></div>
+
+<h3 id="42-spring-整合-redis-集群">4.2 Spring 整合 redis 集群</h3>
+
+<p>常用的操作 redis 的方法提取出一个接口，分别对应单机版和集群版创建两个实现类。</p>
+
+<h4 id="421-接口定义">4.2.1 接口定义</h4>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/**
+ *
+ * @ClassName: JedisClient
+ * @Description: JedisClient接口
+ */</span>
+<span class="kd">public</span> <span class="kd">interface</span> <span class="nc">JedisClient</span> <span class="o">{</span>
+    
+    <span class="nc">String</span> <span class="nf">set</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="nc">String</span> <span class="n">value</span><span class="o">);</span>
+    
+    <span class="nc">Long</span> <span class="nf">del</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">);</span>
+    
+    <span class="nc">String</span> <span class="nf">get</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">);</span>
+    
+    <span class="nc">Boolean</span> <span class="nf">exists</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">);</span>
+    
+    <span class="nc">Long</span> <span class="nf">expire</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="kt">int</span> <span class="n">seconds</span><span class="o">);</span>
+    
+    <span class="nc">Long</span> <span class="nf">ttl</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">);</span>
+    
+    <span class="nc">Long</span> <span class="nf">incr</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">);</span>
+    
+    <span class="nc">Long</span> <span class="nf">hset</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="nc">String</span> <span class="n">field</span><span class="o">,</span> <span class="nc">String</span> <span class="n">value</span><span class="o">);</span>
+    
+    <span class="nc">String</span> <span class="nf">hget</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="nc">String</span> <span class="n">field</span><span class="o">);</span>
+    
+    <span class="nc">Long</span> <span class="nf">hdel</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="nc">String</span><span class="o">...</span> <span class="n">field</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<h4 id="422-单机版实现类">4.2.2 单机版实现类</h4>
+
+<ul>
+  <li>
+    <p>代码实现</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/**
+ *
+ * @ClassName: JedisClientPool
+ * @Description: Jedis单机版实现类
+ *
+ */</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">JedisClientPool</span> <span class="kd">implements</span> <span class="nc">JedisClient</span> <span class="o">{</span>
+  
+    <span class="nd">@Autowired</span>
+    <span class="kd">private</span> <span class="nc">JedisPool</span> <span class="n">jedisPool</span><span class="o">;</span>
+  
+    <span class="cm">/**
+     * @return the jedisPool
+     */</span>
+    <span class="kd">public</span> <span class="nc">JedisPool</span> <span class="nf">getJedisPool</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">jedisPool</span><span class="o">;</span>
+    <span class="o">}</span>
+  
+    <span class="cm">/**
+     * @param jedisPool
+     *            the jedisPool to set
+     */</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setJedisPool</span><span class="o">(</span><span class="nc">JedisPool</span> <span class="n">jedisPool</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">jedisPool</span> <span class="o">=</span> <span class="n">jedisPool</span><span class="o">;</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">set</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="nc">String</span> <span class="n">value</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="n">jedisPool</span><span class="o">.</span><span class="na">getResource</span><span class="o">();</span>
+        <span class="nc">String</span> <span class="n">result</span> <span class="o">=</span> <span class="n">jedis</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">key</span><span class="o">,</span> <span class="n">value</span><span class="o">);</span>
+        <span class="n">jedis</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">get</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="n">jedisPool</span><span class="o">.</span><span class="na">getResource</span><span class="o">();</span>
+        <span class="nc">String</span> <span class="n">result</span> <span class="o">=</span> <span class="n">jedis</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">key</span><span class="o">);</span>
+        <span class="n">jedis</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Boolean</span> <span class="nf">exists</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="n">jedisPool</span><span class="o">.</span><span class="na">getResource</span><span class="o">();</span>
+        <span class="nc">Boolean</span> <span class="n">result</span> <span class="o">=</span> <span class="n">jedis</span><span class="o">.</span><span class="na">exists</span><span class="o">(</span><span class="n">key</span><span class="o">);</span>
+        <span class="n">jedis</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Long</span> <span class="nf">expire</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="kt">int</span> <span class="n">seconds</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="n">jedisPool</span><span class="o">.</span><span class="na">getResource</span><span class="o">();</span>
+        <span class="nc">Long</span> <span class="n">result</span> <span class="o">=</span> <span class="n">jedis</span><span class="o">.</span><span class="na">expire</span><span class="o">(</span><span class="n">key</span><span class="o">,</span> <span class="n">seconds</span><span class="o">);</span>
+        <span class="n">jedis</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Long</span> <span class="nf">ttl</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="n">jedisPool</span><span class="o">.</span><span class="na">getResource</span><span class="o">();</span>
+        <span class="nc">Long</span> <span class="n">result</span> <span class="o">=</span> <span class="n">jedis</span><span class="o">.</span><span class="na">ttl</span><span class="o">(</span><span class="n">key</span><span class="o">);</span>
+        <span class="n">jedis</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Long</span> <span class="nf">incr</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="n">jedisPool</span><span class="o">.</span><span class="na">getResource</span><span class="o">();</span>
+        <span class="nc">Long</span> <span class="n">result</span> <span class="o">=</span> <span class="n">jedis</span><span class="o">.</span><span class="na">incr</span><span class="o">(</span><span class="n">key</span><span class="o">);</span>
+        <span class="n">jedis</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Long</span> <span class="nf">hset</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="nc">String</span> <span class="n">field</span><span class="o">,</span> <span class="nc">String</span> <span class="n">value</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="n">jedisPool</span><span class="o">.</span><span class="na">getResource</span><span class="o">();</span>
+        <span class="nc">Long</span> <span class="n">result</span> <span class="o">=</span> <span class="n">jedis</span><span class="o">.</span><span class="na">hset</span><span class="o">(</span><span class="n">key</span><span class="o">,</span> <span class="n">field</span><span class="o">,</span> <span class="n">value</span><span class="o">);</span>
+        <span class="n">jedis</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">hget</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="nc">String</span> <span class="n">field</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="n">jedisPool</span><span class="o">.</span><span class="na">getResource</span><span class="o">();</span>
+        <span class="nc">String</span> <span class="n">result</span> <span class="o">=</span> <span class="n">jedis</span><span class="o">.</span><span class="na">hget</span><span class="o">(</span><span class="n">key</span><span class="o">,</span> <span class="n">field</span><span class="o">);</span>
+        <span class="n">jedis</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Long</span> <span class="nf">hdel</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="nc">String</span><span class="o">...</span> <span class="n">field</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="n">jedisPool</span><span class="o">.</span><span class="na">getResource</span><span class="o">();</span>
+        <span class="nc">Long</span> <span class="n">result</span> <span class="o">=</span> <span class="n">jedis</span><span class="o">.</span><span class="na">hdel</span><span class="o">(</span><span class="n">key</span><span class="o">,</span> <span class="n">field</span><span class="o">);</span>
+        <span class="n">jedis</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+    <span class="o">}</span>
+  
+    <span class="cm">/**
+     * @Title: del
+     * @Description: TODO(这里用一句话描述这个方法的作用)
+     * @param key
+     * @return
+     */</span>
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Long</span> <span class="nf">del</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="n">jedisPool</span><span class="o">.</span><span class="na">getResource</span><span class="o">();</span>
+        <span class="nc">Long</span> <span class="n">result</span> <span class="o">=</span> <span class="n">jedis</span><span class="o">.</span><span class="na">del</span><span class="o">(</span><span class="n">key</span><span class="o">);</span>
+        <span class="n">jedis</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">;</span>
+    <span class="o">}</span>
+  
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>配置：applicationContext-redis.xml</p>
+
+    <div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="c">&lt;!-- 加载redis配置 --&gt;</span>
+<span class="nt">&lt;context:property-placeholder</span> <span class="na">location=</span><span class="s">"classpath:redis.properties"</span> <span class="nt">/&gt;</span>
+  
+<span class="c">&lt;!-- 链接redis 单机版 --&gt;</span>
+<span class="c">&lt;!-- 初始化jedisClientPool --&gt;</span>
+<span class="nt">&lt;bean</span> <span class="na">id=</span> <span class="s">"jedisClientPool"</span> <span class="na">class =</span><span class="s">" com.silhouette.utils.JedisClientPool"</span><span class="nt">&gt;</span>
+  	<span class="nt">&lt;property</span> <span class="na">name =</span> <span class="s">"jedisPool"</span> <span class="na">ref =</span><span class="s">"jedisPool"</span> <span class="nt">/&gt;</span>
+<span class="nt">&lt;/bean&gt;</span>
+<span class="c">&lt;!-- 配置一个jedisPool --&gt;</span>
+<span class="nt">&lt;bean</span> <span class="na">id=</span> <span class="s">"jedisPool"</span> <span class="na">class=</span> <span class="s">"redis.clients.jedis.JedisPool"</span><span class="nt">&gt;</span>
+  <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"host"</span> <span class="na">value =</span><span class="s">"${redis.host}"</span><span class="nt">/&gt;</span>
+  <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"port"</span> <span class="na">value =</span><span class="s">"${redis.port}"</span><span class="nt">/&gt;</span>
+<span class="nt">&lt;/bean&gt;</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>测试</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testJedisClient</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span><span class="o">{</span>
+    <span class="nc">ApplicationContext</span> <span class="n">context</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ClassPathXmlApplicationContext</span><span class="o">(</span>
+      	<span class="s">"classpath:spring/applicationContext-redis.xml"</span><span class="o">);</span>
+    <span class="nc">JedisClient</span> <span class="n">jedisClient</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="na">getBean</span><span class="o">(</span><span class="nc">JedisClient</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+    <span class="n">jedisClient</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span><span class="s">"silhouette"</span><span class="o">);</span>
+    <span class="nc">String</span> <span class="n">str</span> <span class="o">=</span> <span class="n">jedisClient</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"name"</span><span class="o">);</span>
+    <span class="nc">System</span><span class="o">.</span> <span class="n">out</span> <span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">str</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h4 id="423-集群版实现类">4.2.3 集群版实现类</h4>
+
+<ul>
+  <li>
+    <p>代码实现</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/**
+ *
+ * @ClassName: JedisClientCluster
+ * @Description: Jedis集群版工具类
+ *
+ */</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">JedisClientCluster</span> <span class="kd">implements</span> <span class="nc">JedisClient</span> <span class="o">{</span>
+  
+    <span class="nd">@Autowired</span>
+    <span class="kd">private</span> <span class="nc">JedisCluster</span> <span class="n">jedisCluster</span><span class="o">;</span>
+  
+    <span class="cm">/**
+     * @return the jedisCluster
+     */</span>
+    <span class="kd">public</span> <span class="nc">JedisCluster</span> <span class="nf">getJedisCluster</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">jedisCluster</span><span class="o">;</span>
+    <span class="o">}</span>
+  
+    <span class="cm">/**
+     * @param jedisCluster the jedisCluster to set
+     */</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setJedisCluster</span><span class="o">(</span><span class="nc">JedisCluster</span> <span class="n">jedisCluster</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">jedisCluster</span> <span class="o">=</span> <span class="n">jedisCluster</span><span class="o">;</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">set</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="nc">String</span> <span class="n">value</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">jedisCluster</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">key</span><span class="o">,</span> <span class="n">value</span><span class="o">);</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">get</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">jedisCluster</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">key</span><span class="o">);</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Boolean</span> <span class="nf">exists</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">jedisCluster</span><span class="o">.</span><span class="na">exists</span><span class="o">(</span><span class="n">key</span><span class="o">);</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Long</span> <span class="nf">expire</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="kt">int</span> <span class="n">seconds</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">jedisCluster</span><span class="o">.</span><span class="na">expire</span><span class="o">(</span><span class="n">key</span><span class="o">,</span> <span class="n">seconds</span><span class="o">);</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Long</span> <span class="nf">ttl</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">jedisCluster</span><span class="o">.</span><span class="na">ttl</span><span class="o">(</span><span class="n">key</span><span class="o">);</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Long</span> <span class="nf">incr</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">jedisCluster</span><span class="o">.</span><span class="na">incr</span><span class="o">(</span><span class="n">key</span><span class="o">);</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Long</span> <span class="nf">hset</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="nc">String</span> <span class="n">field</span><span class="o">,</span> <span class="nc">String</span> <span class="n">value</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">jedisCluster</span><span class="o">.</span><span class="na">hset</span><span class="o">(</span><span class="n">key</span><span class="o">,</span> <span class="n">field</span><span class="o">,</span> <span class="n">value</span><span class="o">);</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">hget</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="nc">String</span> <span class="n">field</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">jedisCluster</span><span class="o">.</span><span class="na">hget</span><span class="o">(</span><span class="n">key</span><span class="o">,</span> <span class="n">field</span><span class="o">);</span>
+    <span class="o">}</span>
+  
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Long</span> <span class="nf">hdel</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">,</span> <span class="nc">String</span><span class="o">...</span> <span class="n">field</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">jedisCluster</span><span class="o">.</span><span class="na">hdel</span><span class="o">(</span><span class="n">key</span><span class="o">,</span> <span class="n">field</span><span class="o">);</span>
+    <span class="o">}</span>
+  
+    <span class="cm">/**
+     * @Title: del
+     * @Description: TODO(这里用一句话描述这个方法的作用)
+     * @param key
+     * @return
+     */</span>
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">Long</span> <span class="nf">del</span><span class="o">(</span><span class="nc">String</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">jedisCluster</span><span class="o">.</span><span class="na">del</span><span class="o">(</span><span class="n">key</span><span class="o">);</span>
+    <span class="o">}</span>
+  
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>配置：applicationContext-redis.xml</p>
+
+    <div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;bean</span> <span class="na">id=</span><span class="s">"jedisClientCluster"</span> <span class="na">class=</span><span class="s">"com.silhouette.utils.JedisClientCluster"</span><span class="nt">&gt;</span>
+  	<span class="nt">&lt;property</span> <span class="na">name=</span><span class="s">"jedisCluster"</span> <span class="na">ref=</span><span class="s">"jedisCluster"</span> <span class="nt">/&gt;</span>
+<span class="nt">&lt;/bean&gt;</span>
+<span class="nt">&lt;bean</span> <span class="na">id=</span><span class="s">"jedisCluster"</span> <span class="na">class=</span><span class="s">"redis.clients.jedis.JedisCluster"</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"nodes"</span><span class="nt">&gt;</span>
+      <span class="nt">&lt;set&gt;</span>
+          <span class="nt">&lt;bean</span> <span class="na">class=</span><span class="s">"redis.clients.jedis.HostAndPort"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"host"</span> <span class="na">value =</span><span class="s">"${redis.host}"</span><span class="nt">/&gt;</span>
+            <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"port"</span> <span class="na">value=</span><span class="s">"7001"</span> <span class="nt">/&gt;</span>
+          <span class="nt">&lt;/bean&gt;</span>
+          <span class="nt">&lt;bean</span> <span class="na">class=</span><span class="s">"redis.clients.jedis.HostAndPort"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"host"</span> <span class="na">value =</span><span class="s">"${redis.host}"</span><span class="nt">/&gt;</span>
+            <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"port"</span> <span class="na">value=</span><span class="s">"7002"</span> <span class="nt">/&gt;</span>
+          <span class="nt">&lt;/bean&gt;</span>
+          <span class="nt">&lt;bean</span> <span class="na">class=</span><span class="s">"redis.clients.jedis.HostAndPort"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"host"</span> <span class="na">value =</span><span class="s">"${redis.host}"</span><span class="nt">/&gt;</span>
+            <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"port"</span> <span class="na">value=</span><span class="s">"7003"</span> <span class="nt">/&gt;</span>
+          <span class="nt">&lt;/bean&gt;</span>
+          <span class="nt">&lt;bean</span> <span class="na">class=</span><span class="s">"redis.clients.jedis.HostAndPort"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"host"</span> <span class="na">value =</span><span class="s">"${redis.host}"</span><span class="nt">/&gt;</span>
+            <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"port"</span> <span class="na">value=</span><span class="s">"7004"</span> <span class="nt">/&gt;</span>
+          <span class="nt">&lt;/bean&gt;</span>
+          <span class="nt">&lt;bean</span> <span class="na">class=</span><span class="s">"redis.clients.jedis.HostAndPort"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"host"</span> <span class="na">value =</span><span class="s">"${redis.host}"</span><span class="nt">/&gt;</span>
+            <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"port"</span> <span class="na">value=</span><span class="s">"7005"</span> <span class="nt">/&gt;</span>
+          <span class="nt">&lt;/bean&gt;</span>
+          <span class="nt">&lt;bean</span> <span class="na">class=</span><span class="s">"redis.clients.jedis.HostAndPort"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"host"</span> <span class="na">value =</span><span class="s">"${redis.host}"</span><span class="nt">/&gt;</span>
+            <span class="nt">&lt;constructor-arg</span> <span class="na">name=</span><span class="s">"port"</span> <span class="na">value=</span><span class="s">"7006"</span> <span class="nt">/&gt;</span>
+          <span class="nt">&lt;/bean&gt;</span>
+        <span class="nt">&lt;/set&gt;</span>
+    <span class="nt">&lt;/constructor-arg&gt;</span>
+<span class="nt">&lt;/bean&gt;</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>测试</p>
+
+    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="nd">@Test</span>
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testJedisClient</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span><span class="o">{</span>
+    <span class="nc">ApplicationContext</span> <span class="n">context</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">ClassPathXmlApplicationContext</span><span class="o">(</span>
+      	<span class="s">"classpath:spring/applicationContext-redis.xml"</span><span class="o">);</span>
+    <span class="nc">JedisClient</span> <span class="n">jedisClient</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="na">getBean</span><span class="o">(</span><span class="nc">JedisClient</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+    <span class="n">jedisClient</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span><span class="s">"silhouette"</span><span class="o">);</span>
+    <span class="nc">String</span> <span class="n">str</span> <span class="o">=</span> <span class="n">jedisClient</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"name"</span><span class="o">);</span>
+    <span class="nc">System</span><span class="o">.</span> <span class="n">out</span> <span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">str</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<blockquote>
+  <p>注意：集群版的和单机不能同时使用</p>
+</blockquote>
+
+:ET
