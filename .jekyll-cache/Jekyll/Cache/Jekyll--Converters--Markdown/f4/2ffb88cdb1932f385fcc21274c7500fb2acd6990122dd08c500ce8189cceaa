@@ -1,4 +1,4 @@
-I"��<h2 id="前言">前言</h2>
+I"�<h2 id="前言">前言</h2>
 
 <p>因为手上的一个项目要用到 Redis，所以就利用空余时间来的学习一下 Redis。之前有了解过 Redis及其一些简单的使用，但是知识点太零碎了，所以打算系统的学习一下 Redis，并将学习过程记录下来，以供后期复习和巩固。废话不多说，那我们就开始吧！！！</p>
 
@@ -8,10 +8,8 @@
 
 <h4 id="111-什么是-nosql">1.1.1 什么是 NoSQL</h4>
 
-<p><code class="highlighter-rouge">NoSQL</code></p>
-
 <ul>
-  <li><strong>NoSQL(NoSQL = Not Only SQL)，意即“不仅仅是SQL”，是一项全新的数据库理念，泛指非关系型的数据库</strong>。</li>
+  <li><strong><code class="highlighter-rouge">NoSQL</code>(NoSQL = Not Only SQL)，意即“不仅仅是SQL”，是一项全新的数据库理念，泛指非关系型的数据库</strong>。</li>
   <li>随着互联网web2.0网站的兴起，传统的关系数据库在应付web2.0网站，特别是超大规模和高并发的SNS类型的web2.0纯动态网站已经显得力不从心，暴露了很多难以克服的问题，而非关系型的数据库则由于其本身的特点得到了非常迅速的发展。<strong>NoSQL数据库的产生就是为了解决大规模数据集合多重数据种类带来的挑战，尤其是大数据应用难题。</strong></li>
   <li>目前一些主流的 NoSQL 产品有：MongoDB、CouchDB、Redis、Membase、Neo4j 、 HBase等。</li>
 </ul>
@@ -442,9 +440,7 @@ requirepass password
 
 <h4 id="151-jedis-介绍">1.5.1 Jedis 介绍</h4>
 
-<p>Redis 不仅是使用命令来操作，现在基本上主流的语言都有客户端支持，比如 Java、C、C++、PHP、Node.js、Go等</p>
-
-<p>在官方网站里列出一些 Java 的客户端，有 Jedis、Redission、Jredis、JDBC-Redis等，官方推荐使用 Jedis 和 Redisson。在企业中用的最多的就是 Jedis。</p>
+<p>Redis 不仅是使用命令来操作，现在基本上主流的语言都有客户端支持，比如 Java、C、C++、PHP、Node.js、Go等。在官方网站里列出一些 Java 的客户端，有 Jedis、Redission、Jredis、JDBC-Redis等，官方推荐使用 Jedis 和 Redisson。在企业中用的最多的就是 Jedis。</p>
 
 <h4 id="152-通过-jedis-连接-redis">1.5.2 通过 Jedis 连接 Redis</h4>
 

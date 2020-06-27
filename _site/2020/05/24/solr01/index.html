@@ -1,4 +1,173 @@
-I"+<h2 id="一solr-概述">一、Solr 概述</h2>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Read well,and strive well for those wuh like it.">
+    <meta name="keyword"  content="">
+    <link rel="shortcut icon" href="/img/favicon.ico">
+
+    <title>00_Solr初识 - Silhouette's Blog</title>
+
+    <link rel="canonical" href="http://localhost:4000/2020/05/24/solr01/">
+
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/hux-blog.min.css"> 
+    <link rel="stylesheet" href="/css/silhouette.css">
+    <!-- Pygments Github CSS -->
+    <link rel="stylesheet" href="/css/syntax.css">
+
+    <!-- Custom Fonts -->
+    <!-- <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css"> -->
+    <!-- Hux change font-awesome CDN to qiniu -->
+    <link href="http://cdn.staticfile.org/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+    <!--jekyll Search-->
+    <link rel="stylesheet" href="/search/css/cb-search.css">
+    <!-- Hux Delete, sad but pending in China
+    <link href='http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/
+    css'>
+    -->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- ga & ba script hoook -->
+    <script></script>
+</head>
+
+
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="">
+
+    <!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">Silhouette's Blog</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <!-- Known Issue, found by Hux:
+            <nav>'s height woule be hold on by its content.
+            so, when navbar scale out, the <nav> will cover tags.
+            also mask any touch event of tags, unfortunately.
+        -->
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/about/">About</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/tags/">Tags</a>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    $toggle.addEventListener('click', handleMagic)
+    function handleMagic(e){
+        if ($navbar.className.indexOf('in') > 0) {
+        // CLOSE
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        }else{
+        // OPEN
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+</script>
+
+
+    <!-- Image to hack wechat -->
+<!-- <img src="/img/icon_wechat.png" width="0" height="0"> -->
+<!-- <img src="/img/images/Full-text_Search/solr/00/00-post-bg.jpg" width="0" height="0"> -->
+
+<!-- Post Header -->
+<style type="text/css">
+    header.intro-header{
+        background-image: url('/img/images/Full-text_Search/solr/00/00-post-bg.jpg')
+    }
+</style>
+<header class="intro-header" >
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <div class="post-heading">
+                    <div class="tags">
+                        
+                        <a class="tag" href="/tags/#Solr" title="Solr">Solr</a>
+                        
+                    </div>
+                    <h1>00_Solr初识</h1>
+                    
+                    
+                    <h2 class="subheading">Solr 是一个独立的企业级搜索应用服务器</h2>
+                    
+                    <span class="meta">Posted by silhouette on May 24, 2020</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+
+    <!-- Post Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+				<h2 id="一solr-概述">一、Solr 概述</h2>
 
 <h4 id="11-solr-简介">1.1 Solr 简介</h4>
 
@@ -104,7 +273,7 @@
       <li>
         <p>查看到solr运行时间、solr版本，系统内存、虚拟机内存的使用情况</p>
 
-        <p><img src="/img/images/Full-text_Search/solr/01-DashBoard.png" /></p>
+        <p><img src="/img/images/Full-text_Search/solr/00/01-DashBoard.png" /></p>
       </li>
     </ul>
   </li>
@@ -115,7 +284,7 @@
       <li>
         <p>显示solr运行出现的异常或错误</p>
 
-        <p><img src="/img/images/Full-text_Search/solr/02-Logging.png" /></p>
+        <p><img src="/img/images/Full-text_Search/solr/00/02-Logging.png" /></p>
       </li>
     </ul>
   </li>
@@ -126,7 +295,7 @@
       <li>
         <p>在 Solr 中，每一个 Core，代表一个索引库，里面包含索引数据及其信息。Solr 中可以 拥有多个 Core，也就同时管理多个索引库！就像在 MySQL 中可以有多个 database 一样。</p>
 
-        <p><img src="/img/images/Full-text_Search/solr/03-Core Admin.png" /></p>
+        <p><img src="/img/images/Full-text_Search/solr/00/03-Core Admin.png" /></p>
 
         <ul>
           <li>name：给core起的名字；</li>
@@ -156,12 +325,12 @@
       <li>
         <p>需要在Core Admin里添加了core后才有可选项，这里以默认的collection1为例。</p>
 
-        <p><img src="/img/images/Full-text_Search/solr/04-Core Selecter.png" /></p>
+        <p><img src="/img/images/Full-text_Search/solr/00/04-Core Selecter.png" /></p>
       </li>
       <li>
         <p>通过 Solr 管理界面查询索引数据</p>
 
-        <p><img src="/img/images/Full-text_Search/solr/05-通过 Solr 管理界面查询索引数据.png" /></p>
+        <p><img src="/img/images/Full-text_Search/solr/00/05-通过 Solr 管理界面查询索引数据.png" /></p>
       </li>
     </ul>
   </li>
@@ -298,6 +467,61 @@ class：字段类型在 Solr 中的类。StrField 可索引不可分词。TextFi
     </ul>
   </li>
 </ul>
+
+<h4 id="15-配置中文分词器与业务域">1.5 配置中文分词器与业务域</h4>
+
+<p>创建对应的业务域，需要制定中文分析器，具体创建步骤如下：</p>
+
+<ol>
+  <li>
+    <p>把中文分析器的<code class="highlighter-rouge">IKAnalyzer2012FF_u1.jar</code>包添加到 solr 工程的lib目录下</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>rz /home/silhouette/apache-tomcat-8.5.38/webapps/solr/WEB-INF/lib
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>把扩展词典、配置文件放到 solr 工程的 WEB-INF/classes 目录下</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cd</span> /home/silhouette/apache-tomcat-8.5.38/webapps/solr/WEB-INF/lib
+<span class="nv">$ </span><span class="nb">mkdir </span>classes
+<span class="nv">$ </span><span class="nb">cd </span>classes
+<span class="nv">$ </span>rz ext_stopword.dic
+<span class="nv">$ </span>rz IKAnalyzer.cfg.xml
+<span class="nv">$ </span>rz mydict.dic
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<p>为了让分词器生效，配置一个 FieldType，制定使用 IKAnalyzer的分词规则，这个需要修改<code class="highlighter-rouge">schema.xml</code>文件，具体修改步骤如下：</p>
+
+<ol>
+  <li>
+    <p>修改<code class="highlighter-rouge">schema.xml</code>文件</p>
+
+    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cd</span> /home/silhouette/solr-index/solr/collection1/conf
+<span class="nv">$ </span>vim schema.xml
+<span class="c"># 修改 Solr 的 schema.xml 文件，添加 FieldType</span>
+<span class="c"># 1.添加IK分词器的相关配置</span>
+    &lt;<span class="o">!</span><span class="nt">--</span> IKAnalyzer--&gt;
+    &lt;fieldType <span class="nv">name</span><span class="o">=</span><span class="s2">"text_ik"</span> <span class="nv">class</span><span class="o">=</span><span class="s2">"solr.TextField"</span><span class="o">&gt;</span>
+      &lt;analyzer <span class="nv">class</span><span class="o">=</span><span class="s2">"org.wltea.analyzer.lucene.IKAnalyzer"</span>/&gt;
+    &lt;/fieldType&gt;
+<span class="c"># 2. 配置业务域，type制定使用自定义的 FieldType</span>
+    &lt;field <span class="nv">name</span><span class="o">=</span><span class="s2">"item_title"</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"text_ik"</span> <span class="nv">indexed</span><span class="o">=</span><span class="s2">"true"</span> <span class="nv">stored</span><span class="o">=</span><span class="s2">"true"</span>/&gt;
+    &lt;field <span class="nv">name</span><span class="o">=</span><span class="s2">"item_sell_point"</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"text_ik"</span> <span class="nv">indexed</span><span class="o">=</span><span class="s2">"true"</span> <span class="nv">stored</span><span class="o">=</span><span class="s2">"true"</span>/&gt;
+    &lt;field <span class="nv">name</span><span class="o">=</span><span class="s2">"item_price"</span>  <span class="nb">type</span><span class="o">=</span><span class="s2">"long"</span> <span class="nv">indexed</span><span class="o">=</span><span class="s2">"true"</span> <span class="nv">stored</span><span class="o">=</span><span class="s2">"true"</span>/&gt;
+    &lt;field <span class="nv">name</span><span class="o">=</span><span class="s2">"item_image"</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"string"</span> <span class="nv">indexed</span><span class="o">=</span><span class="s2">"false"</span> <span class="nv">stored</span><span class="o">=</span><span class="s2">"true"</span> /&gt;
+    &lt;field <span class="nv">name</span><span class="o">=</span><span class="s2">"item_category_name"</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"string"</span> <span class="nv">indexed</span><span class="o">=</span><span class="s2">"true"</span> <span class="nv">stored</span><span class="o">=</span><span class="s2">"true"</span> /&gt;
+   
+    &lt;field <span class="nv">name</span><span class="o">=</span><span class="s2">"item_keywords"</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"text_ik"</span> <span class="nv">indexed</span><span class="o">=</span><span class="s2">"true"</span> <span class="nv">stored</span><span class="o">=</span><span class="s2">"false"</span> <span class="nv">multiValued</span><span class="o">=</span><span class="s2">"true"</span>/&gt;
+    &lt;copyField <span class="nb">source</span><span class="o">=</span><span class="s2">"item_title"</span> <span class="nv">dest</span><span class="o">=</span><span class="s2">"item_keywords"</span>/&gt;
+    &lt;copyField <span class="nb">source</span><span class="o">=</span><span class="s2">"item_sell_point"</span> <span class="nv">dest</span><span class="o">=</span><span class="s2">"item_keywords"</span>/&gt;
+    &lt;copyField <span class="nb">source</span><span class="o">=</span><span class="s2">"item_category_name"</span> <span class="nv">dest</span><span class="o">=</span><span class="s2">"item_keywords"</span>/&gt;
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<p>重启tomcat，访问 solo 测试IK分词器是否生效。</p>
 
 <h2 id="二solrj的使用">二、SolrJ的使用</h2>
 
@@ -716,269 +940,280 @@ class：字段类型在 Solr 中的类。StrField 可索引不可分词。TextFi
   </li>
 </ol>
 
-<h2 id="三solrcloud-概述">三、SolrCloud 概述</h2>
 
-<h4 id="31-什么是-solrcloud">3.1 什么是 SolrCloud</h4>
 
-<p>单点的 Solr 服务的问题：</p>
+                <hr>
 
-<ul>
-  <li>能存储的数据量有限，如果是海量数据，无法存储</li>
-  <li>容易出现单点故障</li>
-  <li>对高并发的处理能力差</li>
-</ul>
+                
 
-<p>如果我们的需要处理海量数据、应对高并发请求，并且让我们的服务实现高可用。那么久必须搭建<code class="highlighter-rouge">SolrCloud</code>了。反之，如果数据量很小，请求并发低的情况下，是不需要 SolrColud 的，单点 Solr 久够了。</p>
 
-<p><code class="highlighter-rouge">SolrCloud</code>：Solr 云，是Solr 提供的分布式搜索方案，可以解决海量数据的分布式全文检索，因为搭建了集群，因此具备了高可用的特性，同时对数据进行著丛备份，避免了单点故障问题。可以做到数据的快速恢复。并且可以动态的添加新的节点，再对数据进行平衡。</p>
+                <ul class="pager">
+                    
+                    <li class="previous">
+                        <a href="/2020/05/18/lucene/" data-toggle="tooltip" data-placement="top" title="Lucene初识">&larr; Previous Post</a>
+                    </li>
+                    
+                    
+                    <li class="next">
+                        <a href="/2020/06/01/Sailboats/" data-toggle="tooltip" data-placement="top" title="Sailboats">Next Post &rarr;</a>
+                    </li>
+                    
+                </ul>
 
-<h4 id="32-solrcloud-结构简介">3.2 SolrCloud 结构简介</h4>
 
-<p>为了实现海量数据的存储，我们会把索引进行分层(<code class="highlighter-rouge">Shard</code>)，把分片后的数据存储到不同的 Solr 节点。为了保证节点数据的高可用，避免单点故障，我们又会对每一个 Shard 进行复制，产生很多副本(<code class="highlighter-rouge">Replicas</code>)，每一个副本对于一个 Solr 节点中的一个 core。用户访问的时候，可以访问任何一个会被自动分配到任何一个可用副本进行查询，这样久实现了负载均衡。</p>
+                
 
-<p><img src="/img/images/Full-text_Search/solr/06-SolrCloud.png" /></p>
+                
 
-<ul>
-  <li>Collection：在SolrCloud集群中逻辑意义上的完整的索引。一般会包含多个Shard（分片），如果大于1个分片，那么就是分布式存储</li>
-  <li>Shard: Collection的逻辑分片。每个Shard被化成一个或者多个replicas（副本），通过选举确定哪个是Leader（主），其它为从</li>
-  <li>Replica: Shard的一个副本，存储在Solr集群的某一台机器中（就是一个节点），对应这台Solr的一个Core。</li>
-  <li>Leader: 赢得选举的Shard replicas。每个Shard有多个Replicas，这几个Replicas需要选举来确定一个Leader。选举可以发生在任何时间，但是通常他们仅在某个Solr实例发生故障时才会触发。当索引documents时，SolrCloud会传递它们到此Shard对应的leader，leader再分发它们到全部Shard的replicas。</li>
-</ul>
+            </div>
 
-<h4 id="33-solrcloud-的搭建">3.3 SolrCloud 的搭建</h4>
+    <!-- Sidebar Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
 
-<ol>
-  <li>
-    <p>先搭建Zookeeper 集群</p>
-  </li>
-  <li>
-    <p>修改Solr配置文件，配置集群的中每台Solr服务的IP和端口</p>
+                <!-- Featured Tags -->
+                
+                <section>
+                    <hr class="hidden-sm hidden-xs">
+                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
+                    <div class="tags">
+        				
+                            
+                				<a href="/tags/#Blog" title="Blog" rel="2">
+                                    Blog
+                                </a>
+                            
+        				
+                            
+        				
+                            
+        				
+                            
+                				<a href="/tags/#Music" title="Music" rel="2">
+                                    Music
+                                </a>
+                            
+        				
+                            
+        				
+                            
+                				<a href="/tags/#Solr" title="Solr" rel="2">
+                                    Solr
+                                </a>
+                            
+        				
+                            
+                				<a href="/tags/#Nginx" title="Nginx" rel="4">
+                                    Nginx
+                                </a>
+                            
+        				
+                            
+        				
+                            
+        				
+                            
+                				<a href="/tags/#Redis" title="Redis" rel="4">
+                                    Redis
+                                </a>
+                            
+        				
+                            
+        				
+        			</div>
+                </section>
+                
 
-    <div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;solrcloud&gt;</span>
-    <span class="nt">&lt;str</span> <span class="na">name=</span><span class="s">"host"</span><span class="nt">&gt;</span>192.168.0.109<span class="nt">&lt;/str&gt;</span>
-    <span class="nt">&lt;int</span> <span class="na">name=</span><span class="s">"hostPort"</span><span class="nt">&gt;</span>8080<span class="nt">&lt;/int&gt;</span>
-    <span class="nt">&lt;str</span> <span class="na">name=</span><span class="s">"hostContext"</span><span class="nt">&gt;</span>${hostContext:solr}<span class="nt">&lt;/str&gt;</span>
-    <span class="nt">&lt;int</span> <span class="na">name=</span><span class="s">"zkClientTimeout"</span><span class="nt">&gt;</span>${zkClientTimeout:30000}<span class="nt">&lt;/int&gt;</span>
-    <span class="nt">&lt;bool</span> <span class="na">name=</span><span class="s">"genericCoreNodeNames"</span><span class="nt">&gt;</span>${genericCoreNodeNames:true}<span class="nt">&lt;/bool&gt;</span>
-<span class="nt">&lt;/solrcloud&gt;</span>
-</code></pre></div>    </div>
-  </li>
-  <li>
-    <p>将Solr配置文件上传到Zookeeper中统一管理</p>
+                <!-- Friends Blog -->
+                
+                <hr>
+                <h5>FRIENDS</h5>
+                <ul class="list-inline">
+                    
+                        <li><a href="https://mariajiang.github.io/">姜梦原的博客</a></li>
+                    
+                </ul>
+                
+            </div>
+        </div>
+    </div>
+</article>
 
-    <ul>
-      <li>
-        <p>由于zookeeper统一管理solr的配置文件（主要是schema.xml、solrconfig.xml）， solrCloud各各节点使用zookeeper管理的配置文件。以后无论创建任何的core，本地的配置文件都没用了，使用的都是zookeeper的配置文件.</p>
-      </li>
-      <li>
-        <p>执行下边的命令将/home/silhouette/solr-index/collection1/conf下的配置文件上传到zookeeper：</p>
 
-        <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#  Solr提供的访问Zookeeper的脚本文件 :</span>
-<span class="c">#			/home/silhouette/solr-4.10.2/example/scripts/cloud-scripts/zkcli.sh  </span>
-<span class="c">#  指定Zookeeper:  </span>
-<span class="c">#			-zkhost 192.168.0.109:2181,192.168.0.112:2181,192.168.0.114:2181  </span>
-<span class="c">#   -cmd upconfig： 指定操作的命令。这里是上传配置</span>
-<span class="c">#  指定要上传的配置文件目录，我们上传Solr的样例中的配置</span>
-<span class="c">#  		confdir /home/silhouette/solr-index/collection1/conf</span>
-<span class="c">#   -confname solrconf ：指定注册到Zookeeper中后配置文件目录名称</span>
-<span class="nv">$ </span>sh /home/silhouette/solr-4.10.2/example/scripts/cloud-scripts/zkcli.sh <span class="nt">-zkhost</span> 192.168.0.109:2181,192.168.0.112:2181,192.168.0.114:2181 <span class="nt">-cmd</span> upconfig <span class="nt">-confdir</span> /home/silhouette/solr-index/collection1/conf <span class="nt">-confname</span> solrconf
-</code></pre></div>        </div>
-      </li>
-    </ul>
-  </li>
-  <li>
-    <p>启动SolrCloud</p>
 
-    <ul>
-      <li>
-        <p>启动每一台服务器中的Solr服务，访问SolrCloud，查看云的状态。</p>
-      </li>
-      <li>
-        <p>效果如下图所示：</p>
 
-        <p><img src="/img/images/Full-text_Search/solr/08-SolrCloud效果图.png" /></p>
-      </li>
-    </ul>
-  </li>
-</ol>
 
-<h4 id="34-通过管理界面查看和操作solrcloud">3.4 通过管理界面查看和操作SolrCloud</h4>
 
-<ul>
-  <li>
-    <p>SolrCloud的操作命令</p>
 
-    <ul>
-      <li>Solr采用的是类似WebService的API接口，采用Http方式进行访问，因此，其操作命令都是一些URL联接及对应参数</li>
-    </ul>
 
-    <ol>
-      <li>
-        <p>创建core命令(在页面的Url中执行)</p>
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+<!-- anchor-js, Doc:http://bryanbraun.github.io/anchorjs/ -->
+<script>
+    async("http://cdn.bootcss.com/anchor-js/1.1.1/anchor.min.js",function(){
+        anchors.options = {
+          visible: 'always',
+          placement: 'right',
+          icon: '#'
+        };
+        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
+    })
+</script>
+<style>
+    /* place left on bigger screen */
+    @media all and (min-width: 800px) {
+        .anchorjs-link{
+            position: absolute;
+            left: -0.75em;
+            font-size: 1.1em;
+            margin-top : -0.1em;
+        }
+    }
+</style>
 
-        <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>http://192.168.0.109:8080/solr/admin/collections?action=CREATE&amp;name=myCollection2&amp;numShards=2&amp;
-replicationFactor=2&amp;maxShardsPerNode=8&amp;property.schema=schema.xml&amp;property.config=solrconfig.xml
-     
-参数说明：
-    name：指明collection名称
-    numShards：指明分片数
-    replicationFactor：指明副本数
-    maxShardsPerNode： 每个节点最大分片数（默认为1）
-    property.schema：指定使用的schema.xml，这个文件必须在zookeeper上。
-    property.config：指定使用的solrconfig.xml，这个文件必须在zookeeper上。
-</code></pre></div>        </div>
-      </li>
-      <li>
-        <p>删除Collection命令</p>
 
-        <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>http://192.168.0.109:8080/solr/admin/collections?action=DELETE&amp;name=collection1
-</code></pre></div>        </div>
-      </li>
-      <li>
-        <p>查询所有的Collection</p>
 
-        <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code> http://192.168.0.109:8080/solr/admin/collections?action=LIST
-</code></pre></div>        </div>
-      </li>
-      <li>
-        <p>显示集群的状态</p>
+    <!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                    
+                    
 
-        <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>http://192.168.0.109:8080/solr/admin/collections?action=CLUSTERSTATUS
-</code></pre></div>        </div>
-      </li>
-      <li>
-        <p>分裂shard</p>
+                    <!-- add Weibo, Zhihu by Hux, add target = "_blank" to <a> by Hux -->
+                    
+                    
 
-        <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>http://192.168.0.109:8080/solr/admin/collections?action=SPLITSHARD&amp;collection=myCollection2
-&amp;shard=shard2
-</code></pre></div>        </div>
-      </li>
-      <li>
-        <p>删除shard</p>
 
-        <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>http://192.168.0.109:8080/solr/admin/collections?action=DELETESHARD&amp;collection=myCollection2
-&amp;shard=shard2
-</code></pre></div>        </div>
-      </li>
-    </ol>
-  </li>
-  <li>
-    <p>SolrCloud测试</p>
+                    
+                    
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright &copy; Silhouette's Blog 2020
+                    <br>
+                    Theme by <a href="https://caojiele.com">caojiele</a> |
+                    <iframe
+                        style="margin-left: 2px; margin-bottom:-5px;"
+                        frameborder="0" scrolling="0" width="100px" height="20px"
+                        src="https://ghbtns.com/github-btn.html?user=huxpro&repo=huxpro.github.io&type=star&count=true" >
+                    </iframe>
+                </p>
+            </div>
+        </div>
+    </div>
+    <!--回到顶部-->
+    <div id="backtop">
+       <a href="#">TOP</a>
+    </div> 
+    <!--搜索框-->
+    <div class="cb-search-tool" style="position: fixed; top: 0px ; bottom: 0px; left: 0px; right:  0px;
+      opacity: 0.95; background-color: #111111; z-index: 9999; display: none;">
+    	<input type="text" class="form-control cb-search-content" id="cb-search-content" style="position: fixed; top: 60px" placeholder="文章标题 日期 >标签" >
 
-    <ul>
-      <li>
-        <p>创建索引：在一台Solr上创建的索引，从其它solr服务上可以查询到</p>
+    	<div style="position: fixed; top: 16px; right: 16px;">
+        	<img src="/search/img/cb-close.png"  id="cb-close-btn"/>
+    	</div>
+    </div>
 
-        <p><img src="/img/images/Full-text_Search/solr/09-solrCloud创建索引.png" /></p>
-      </li>
-      <li>
-        <p>查询索引：从任意一台Solr上查询索引，选择任意的一个分片，都会返回一个完整的结果</p>
+    <div style="position: fixed; right: 16px; bottom: 20px;">
+    	<img src="/search/img/cb-search.png"  id="cb-search-btn"  title="双击ctrl试一下"/>
+    </div>
+</footer>
+<!-- jQuery -->
+<script src="/js/jquery.min.js "></script>
 
-        <p><img src="/img/images/Full-text_Search/solr/10-solrCloud查询索引.png" /></p>
-      </li>
-    </ul>
-  </li>
-</ul>
+<!-- Bootstrap Core JavaScript -->
+<script src="/js/bootstrap.min.js "></script>
 
-<h4 id="35-使用solrj访问solrcloud">3.5 使用SolrJ访问SolrCloud</h4>
+<!-- Custom Theme JavaScript -->
+<script src="/js/hux-blog.min.js "></script>
+<script src="/js/silhouette.js "></script>
 
-<p>与单机Solr相比，API仅仅是在创建SolrServer时发生了改变，其它没有变化。单机采用的是：HttpSolrServer，SolrCloud采用的是：CloudSolrServer。</p>
+<!--jekyll search-->
+<script src="/search/js/bootstrap3-typeahead.min.js"></script>
+<script src="/search/js/cb-search.js"></script>
 
-<ul>
-  <li>
-    <p>Maven的依赖</p>
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
 
-    <div class="language-xml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;dependencies&gt;</span>
-		<span class="nt">&lt;dependency&gt;</span>
-			<span class="nt">&lt;groupId&gt;</span>org.apache.solr<span class="nt">&lt;/groupId&gt;</span>
-			<span class="nt">&lt;artifactId&gt;</span>solr-solrj<span class="nt">&lt;/artifactId&gt;</span>
-			<span class="nt">&lt;version&gt;</span>4.10.2<span class="nt">&lt;/version&gt;</span>
-		<span class="nt">&lt;/dependency&gt;</span>
-		<span class="c">&lt;!-- Solr底层会使用到slf4j日志系统 --&gt;</span>
-		<span class="nt">&lt;dependency&gt;</span>
-			<span class="nt">&lt;groupId&gt;</span>org.slf4j<span class="nt">&lt;/groupId&gt;</span>
-			<span class="nt">&lt;artifactId&gt;</span>slf4j-log4j12<span class="nt">&lt;/artifactId&gt;</span>
-			<span class="nt">&lt;version&gt;</span>1.7.22<span class="nt">&lt;/version&gt;</span>
-		<span class="nt">&lt;/dependency&gt;</span>
-		<span class="nt">&lt;dependency&gt;</span>
-			<span class="nt">&lt;groupId&gt;</span>commons-logging<span class="nt">&lt;/groupId&gt;</span>
-			<span class="nt">&lt;artifactId&gt;</span>commons-logging<span class="nt">&lt;/artifactId&gt;</span>
-			<span class="nt">&lt;version&gt;</span>1.2<span class="nt">&lt;/version&gt;</span>
-		<span class="nt">&lt;/dependency&gt;</span>
-  	<span class="c">&lt;!-- Junit单元测试 --&gt;</span>
-  	<span class="nt">&lt;dependency&gt;</span>
-			<span class="nt">&lt;groupId&gt;</span>junit<span class="nt">&lt;/groupId&gt;</span>
-			<span class="nt">&lt;artifactId&gt;</span>junit<span class="nt">&lt;/artifactId&gt;</span>
-			<span class="nt">&lt;version&gt;</span>4.12<span class="nt">&lt;/version&gt;</span>
-		<span class="nt">&lt;/dependency&gt;</span>
-<span class="nt">&lt;/dependencies&gt;</span>
-</code></pre></div>    </div>
-  </li>
-  <li>
-    <p>添加或修改数据</p>
+<!-- 
+     Because of the native support for backtick-style fenced code blocks 
+     right within the Markdown is landed in Github Pages, 
+     From V1.6, There is no need for Highlight.js, 
+     so Huxblog drops it officially.
 
-    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
-<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testWrite</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span><span class="o">{</span>
-		<span class="c1">// 创建SolrServer</span>
-		<span class="nc">CloudSolrServer</span> <span class="n">server</span> <span class="o">=</span> 
-      					<span class="k">new</span> <span class="nf">CloudSolrServer</span><span class="o">(</span><span class="s">"192.168.0.109:2181,192.168.0.112:2181,192.168.0.114:2181"</span><span class="o">);</span>
-		<span class="c1">// 指定要访问的Collection名称</span>
-		<span class="n">server</span><span class="o">.</span><span class="na">setDefaultCollection</span><span class="o">(</span><span class="s">"collection1"</span><span class="o">);</span>
-  		
-		<span class="c1">// 创建Document对象</span>
-		<span class="nc">SolrInputDocument</span> <span class="n">document</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SolrInputDocument</span><span class="o">();</span>
-		<span class="c1">// 添加字段</span>
-		<span class="n">document</span><span class="o">.</span><span class="na">addField</span><span class="o">(</span><span class="s">"id"</span><span class="o">,</span> <span class="s">"1"</span><span class="o">);</span>
-		<span class="n">document</span><span class="o">.</span><span class="na">addField</span><span class="o">(</span><span class="s">"title"</span><span class="o">,</span> <span class="s">"solrcloud写入的数据"</span><span class="o">);</span>
-  		
-		<span class="c1">// 添加Document到Server</span>
-		<span class="n">server</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">document</span><span class="o">);</span>
-		<span class="c1">// 提交</span>
-		<span class="n">server</span><span class="o">.</span><span class="na">commit</span><span class="o">();</span>
-<span class="o">}</span>
-</code></pre></div>    </div>
-  </li>
-  <li>
-    <p>删除数据</p>
+     - https://github.com/blog/2100-github-pages-now-faster-and-simpler-with-jekyll-3-0  
+     - https://help.github.com/articles/creating-and-highlighting-code-blocks/    
+-->
+<!--
+    <script>
+        async("http://cdn.bootcss.com/highlight.js/8.6/highlight.min.js", function(){
+            hljs.initHighlightingOnLoad();
+        })
+    </script>
+    <link href="http://cdn.bootcss.com/highlight.js/8.6/styles/github.min.css" rel="stylesheet">
+-->
 
-    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
-<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testDelete</span><span class="o">()</span><span class="kd">throws</span> <span class="nc">Exception</span><span class="o">{</span>
-    <span class="c1">// 创建SolrServer</span>
-    <span class="nc">CloudSolrServer</span> <span class="n">server</span> <span class="o">=</span> 
-      	<span class="k">new</span> <span class="nf">CloudSolrServer</span><span class="o">(</span><span class="s">"192.168.0.109:2181,192.168.0.112:2181,192.168.0.114:2181"</span><span class="o">);</span>
-    <span class="c1">// 指定要访问的Collection名称</span>
-    <span class="n">server</span><span class="o">.</span><span class="na">setDefaultCollection</span><span class="o">(</span><span class="s">"collection1"</span><span class="o">);</span>
-    <span class="c1">// 根据ID删除</span>
-    <span class="n">server</span><span class="o">.</span><span class="na">deleteById</span><span class="o">(</span><span class="s">"1"</span><span class="o">);</span>
-    <span class="c1">// 提交</span>
-    <span class="n">server</span><span class="o">.</span><span class="na">commit</span><span class="o">();</span>
-<span class="o">}</span>
-</code></pre></div>    </div>
-  </li>
-  <li>
-    <p>查询数据</p>
 
-    <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@Test</span>
-<span class="kd">public</span> <span class="kt">void</span> <span class="nf">testSearch</span><span class="o">()</span> <span class="kd">throws</span> <span class="nc">Exception</span> <span class="o">{</span>
-    <span class="c1">// 创建SolrServer</span>
-    <span class="nc">CloudSolrServer</span> <span class="n">server</span> <span class="o">=</span> 
-      	<span class="k">new</span> <span class="nf">CloudSolrServer</span><span class="o">(</span><span class="s">"192.168.0.109:2181,192.168.0.112:2181,192.168.0.114:2181"</span><span class="o">);</span>
-    <span class="c1">// 指定要访问的Collection名称</span>
-    <span class="n">server</span><span class="o">.</span><span class="na">setDefaultCollection</span><span class="o">(</span><span class="s">"collection1"</span><span class="o">);</span>
-  
-    <span class="c1">// 查找数据</span>
-    <span class="nc">QueryResponse</span> <span class="n">response</span> <span class="o">=</span> <span class="n">server</span><span class="o">.</span><span class="na">query</span><span class="o">(</span><span class="k">new</span> <span class="nc">SolrQuery</span><span class="o">(</span><span class="s">"title:solrcloud"</span><span class="o">));</span>
-  
-    <span class="c1">// 以document形式解析数据</span>
-    <span class="nc">SolrDocumentList</span> <span class="n">documentList</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="na">getResults</span><span class="o">();</span>
-    <span class="c1">// 遍历</span>
-    <span class="k">for</span> <span class="o">(</span><span class="nc">SolrDocument</span> <span class="n">solrDocument</span> <span class="o">:</span> <span class="n">documentList</span><span class="o">)</span> <span class="o">{</span>
-        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">solrDocument</span><span class="o">.</span><span class="na">getFieldValue</span><span class="o">(</span><span class="s">"id"</span><span class="o">));</span>
-        <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">solrDocument</span><span class="o">.</span><span class="na">getFieldValue</span><span class="o">(</span><span class="s">"title"</span><span class="o">));</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div>    </div>
-  </li>
-</ul>
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async("/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
 
-:ET
+<!--fastClick.js -->
+<script>
+    async("http://cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+<!-- Google Analytics -->
+
+
+
+<!-- Baidu Tongji -->
+
+
+
+
+<!-- Image to hack wechat -->
+<img src="/img/icon_wechat.png" width="0" height="0" />
+<!-- Migrate from head to bottom, no longer block render and still work -->
+
+</body>
+<!-- or without installing anything -->
+<script src="https://unpkg.com/simple-jekyll-search/dest/simple-jekyll-search.min.js"></script>
+</html>

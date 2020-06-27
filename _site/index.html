@@ -155,6 +155,38 @@
             ">
     			
 <div class="post-preview">
+    <a href="/2020/06/24/solr02/">
+        <h2 class="post-title">
+            01_SolrCloud搭建与使用
+        </h2>
+        
+        <h3 class="post-subtitle">
+            SolrCloud 是Solr 提供的分布式搜索方案
+        </h3>
+        
+        <div class="post-content-preview">
+            一、SolrCloud 概述
+
+1.1 什么是 SolrCloud
+
+单点的 Solr 服务的问题：
+
+
+  能存储的数据量有限，如果是海量数据，无法存储
+  容易出现单点故障
+  对高并发的处理能力差
+
+
+如果我们的需要处理海量数据、应对高并发请求，并且让我们的服务实现高可用。那么久必须搭建SolrCloud了。反之，如果数据量很小，请求并发低的情况下，是不需要 SolrColud 的，单...
+        </div>
+    </a>
+    <p class="post-meta">
+        Posted by silhouette on June 24, 2020
+    </p>
+</div>
+<hr>
+
+<div class="post-preview">
     <a href="/2020/06/20/redis03/">
         <h2 class="post-title">
             03_Redis集群搭建
@@ -167,13 +199,11 @@
         <div class="post-content-preview">
             前言
 
+参考文档如下：
 
-  
-    redis集群简介
-  
-  
-    redis的三种集群方式
-  
+
+  redis集群简介
+  redis的三种集群方式
 
 
 一、Redis 的主从复制
@@ -181,6 +211,10 @@
 1.1 什么是主从复制
 
 持久化保证了即使 redis 服务重启也不会丢失数据，因为redis 服务重启后会将硬盘上持久化的数据恢复到内存中，但是当 redis 服务器的硬盘损坏了可能会导致数据丢失，如果通过redis 的主从复制机制就可以避免这种单点故障。
+
+
+
+说明：
 
 
 ...
@@ -205,6 +239,8 @@
         <div class="post-content-preview">
             前言
 
+参考链接如下所示：
+
 
   redis实现消息队列&amp;发布/订阅模式使用
 
@@ -213,7 +249,7 @@
 
 1.1 Redis 列表类型回顾
 
-列表类型（list）可以存储一个有序的字符串列表，常用的操作是向列表两端添加元素，或者获得列表的某个片段。列表类型内部是使用双向链表(double linked list)实现的。可以用来用来实现队列，并且支持阻塞式读取，可以很容易的实现一个高性能的优先队...
+列表类型（list）可以存储一个有序的字符串列表，常用的操作是向列表两端添加元素，或者获得列表的某个片段。列表类型内部是使用双向链表(double linked list)实现的。可以用来用来实现队列，并且支持阻塞式读取，可以很容易的...
         </div>
     </a>
     <p class="post-meta">
@@ -271,10 +307,8 @@ redis 提供五种数据类型：String类型、hash类型、list类型、...
 
 1.1.1 什么是 NoSQL
 
-NoSQL
 
-
-  NoSQL(NoSQ...
+  NoSQL(NoSQL = Not...
         </div>
     </a>
     <p class="post-meta">
@@ -426,32 +460,6 @@ Sailboats was originally created for a project called Seagull Orchestra, but Ada
 </div>
 <hr>
 
-<div class="post-preview">
-    <a href="/2020/05/24/solr/">
-        <h2 class="post-title">
-            Solr初识
-        </h2>
-        
-        <h3 class="post-subtitle">
-            Solr 是一个独立的企业级搜索应用服务器
-        </h3>
-        
-        <div class="post-content-preview">
-            一、Solr 概述
-
-1.1 Solr 简介
-
-
-  Solr：Solr 是一个高性能，采用 Java5 开发，基于 Lucene 的全文搜索服务器。同时对其进 行了扩展，提供了比 Lucene 更为丰富的查询语言，同时实现了可配置、可扩展并对查询性 能进行了优化，并且提供了一个完善的功能管理界面，是一款非常优秀的全文搜索引擎。
-  下载：Solr 是 Apache 下的一个开源项目，由于是...
-        </div>
-    </a>
-    <p class="post-meta">
-        Posted by silhouette on May 24, 2020
-    </p>
-</div>
-<hr>
-
 
 <!-- Pager -->
 
@@ -498,8 +506,10 @@ Sailboats was originally created for a project called Seagull Orchestra, but Ada
                             
                         
                             
-                                <a href="/tags/#全文检索" title="全文检索" rel="2">
-                                    全文检索
+                        
+                            
+                                <a href="/tags/#Solr" title="Solr" rel="2">
+                                    Solr
                                 </a>
                             
                         
@@ -517,6 +527,8 @@ Sailboats was originally created for a project called Seagull Orchestra, but Ada
                                 <a href="/tags/#Redis" title="Redis" rel="4">
                                     Redis
                                 </a>
+                            
+                        
                             
                         
                     </div>

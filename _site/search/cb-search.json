@@ -3,6 +3,14 @@
 	"data" : [
 	 
 	{
+		"title" : "01_SolrCloud搭建与使用 - Solr_Zookeeper",
+		"url" : "/2020/06/24/solr02/"
+	}
+	
+	,
+	
+    
+	{
 		"title" : "03_Redis集群搭建 - Redis",
 		"url" : "/2020/06/20/redis03/"
 	}
@@ -75,8 +83,8 @@
 	
     
 	{
-		"title" : "Solr初识 - 全文检索",
-		"url" : "/2020/05/24/solr/"
+		"title" : "00_Solr初识 - Solr",
+		"url" : "/2020/05/24/solr01/"
 	}
 	
 	,

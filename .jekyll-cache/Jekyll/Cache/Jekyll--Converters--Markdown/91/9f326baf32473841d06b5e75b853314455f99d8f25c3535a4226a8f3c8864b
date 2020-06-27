@@ -1,12 +1,10 @@
 I"��<h2 id="前言">前言</h2>
 
+<p>参考文档如下：</p>
+
 <ul>
-  <li>
-    <p><a href="https://www.cnblogs.com/vieta/p/11192137.html">redis集群简介</a></p>
-  </li>
-  <li>
-    <p><a href="https://www.cnblogs.com/51life/p/10233340.html">redis的三种集群方式</a></p>
-  </li>
+  <li><a href="https://www.cnblogs.com/vieta/p/11192137.html">redis集群简介</a></li>
+  <li><a href="https://www.cnblogs.com/51life/p/10233340.html">redis的三种集群方式</a></li>
 </ul>
 
 <h2 id="一redis-的主从复制">一、Redis 的主从复制</h2>
@@ -359,7 +357,7 @@
  ./redis-server ../etc/redis.conf
 <span class="nb">cd</span> ../../
 <span class="c">##保存文件并退出</span>
-<span class="c"># 修改批出里文件权限</span>
+<span class="c"># 修改批处理文件权限</span>
 <span class="nv">$ </span><span class="nb">chmod </span>u+x start-all.sh
 </code></pre></div>    </div>
   </li>
@@ -380,7 +378,7 @@
 ./redis7005/bin/redis-cli <span class="nt">-p</span> 7005 shutdown
 ./redis7006/bin/redis-cli <span class="nt">-p</span> 7006 shutdown
 <span class="c">##保存文件并退出</span>
-<span class="c"># 修改批出里文件权限</span>
+<span class="c"># 修改批处理文件权限</span>
 <span class="nv">$ </span><span class="nb">chmod </span>u+x shutdown-all.sh
 </code></pre></div>    </div>
   </li>
